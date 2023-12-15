@@ -103,9 +103,21 @@ where
         format: SerdeFormat,
         #[cfg(feature = "circuit-params")] params: ConcreteCircuit::Params,
     ) -> io::Result<Self> {
+        // Maximum allowed value for parameter `k`, the log-size of the circuit.
+        const MAX_CIRCUIT_SIZE: u32 = 32;
         let mut k = [0u8; 4];
         reader.read_exact(&mut k)?;
         let k = u32::from_be_bytes(k);
+        if k > MAX_CIRCUIT_SIZE {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                format!(
+                    "circuit size value (k): {} exceeds maxium: {}",
+                    k, MAX_CIRCUIT_SIZE
+                ),
+            ));
+        }
+
         let (domain, cs, _) = keygen::create_domain::<C, ConcreteCircuit>(
             k,
             #[cfg(feature = "circuit-params")]
