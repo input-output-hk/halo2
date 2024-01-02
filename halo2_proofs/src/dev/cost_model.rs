@@ -46,9 +46,6 @@ pub struct CostOptions {
     /// A permutation over N columns. May be repeated.
     pub permutation: Permutation,
 
-    /// A shuffle over N columns with max input degree I and max shuffle degree T. May be repeated.
-    pub shuffle: Vec<Shuffle>,
-
     /// 2^K bound on the number of rows.
     pub k: usize,
 }
@@ -110,19 +107,6 @@ impl Permutation {
     }
 }
 
-/// Structure holding the [Shuffle] related data for circuit benchmarks.
-#[derive(Debug, Clone)]
-pub struct Shuffle;
-
-impl Shuffle {
-    fn queries(&self) -> impl Iterator<Item = Poly> {
-        // Open shuffle product commitment at x and \omega x
-        let shuffle = "0, 1".parse().unwrap();
-
-        iter::empty().chain(Some(shuffle))
-    }
-}
-
 /// High-level specifications of an abstract circuit.
 #[derive(Debug, Deserialize, Serialize)]
 pub struct ModelCircuit {
@@ -136,8 +120,6 @@ pub struct ModelCircuit {
     pub lookups: usize,
     /// Equality constraint enabled columns.
     pub permutations: usize,
-    /// Number of shuffle arguments
-    pub shuffles: usize,
     /// Number of distinct column queries across all gates.
     pub column_queries: usize,
     /// Number of distinct sets of points in the multiopening argument.
@@ -160,7 +142,6 @@ impl CostOptions {
             .cloned()
             .chain(self.lookup.iter().flat_map(|l| l.queries()))
             .chain(self.permutation.queries())
-            .chain(self.shuffle.iter().flat_map(|s| s.queries()))
             .chain(iter::repeat("0".parse().unwrap()).take(self.max_degree - 1))
             .collect();
 
@@ -232,7 +213,6 @@ impl CostOptions {
             advice_columns: self.advice.len(),
             lookups: self.lookup.len(),
             permutations: self.permutation.columns,
-            shuffles: self.shuffle.len(),
             column_queries,
             point_sets,
             size,
@@ -298,8 +278,6 @@ pub fn from_circuit_to_cost_model_options<F: Ord + Field + FromUniformBytes<64>,
         columns: cs.permutation().get_columns().len(),
     };
 
-    let shuffle = { cs.shuffles.iter().map(|_| Shuffle).collect::<Vec<_>>() };
-
     let gate_degree = cs
         .gates
         .iter()
@@ -317,7 +295,6 @@ pub fn from_circuit_to_cost_model_options<F: Ord + Field + FromUniformBytes<64>,
         max_degree: cs.degree(),
         lookup,
         permutation,
-        shuffle,
         k,
     }
 }
