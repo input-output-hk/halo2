@@ -2,7 +2,7 @@
 //! verification cost, as well as resulting proof size.
 
 use std::collections::HashSet;
-use std::{iter, num::ParseIntError, str::FromStr};
+use std::{cmp, iter, num::ParseIntError, str::FromStr};
 
 use crate::plonk::Circuit;
 use ff::{Field, FromUniformBytes};
@@ -51,6 +51,20 @@ pub struct CostOptions {
 
     /// 2^K bound on the number of rows.
     pub k: usize,
+
+    /// Minimum value of k needed to account for the circuit
+    pub min_k: usize,
+	
+    /// Expanded rows count, which does not account for compression (where
+    /// multiple regions can use the same rows).
+    pub expanded_rows_count: usize,
+
+    /// Compressed rows count, which does account for compression (where
+    /// multiple regions can use the same rows).
+    pub compressed_rows_count: usize,
+
+    /// Gate usages.
+    pub gate_usages: Vec<GateUsage>,
 }
 
 /// Structure holding polynomial related data for benchmarks
@@ -123,11 +137,27 @@ impl Shuffle {
     }
 }
 
+/// Information about how a gate (see plonk::circuit::Gate) is used in the
+/// circuit.
+#[derive(Clone, Debug, Deserialize, Serialize)] 
+pub struct GateUsage {
+    /// The name of the gate.
+    pub name: String,
+    /// The number of times that the selector for this gate is enabled.
+    pub uses: usize,
+    /// The (max) degree of this gate's constraints (which are polynomials).
+    pub degree: usize,
+}
+
 /// High-level specifications of an abstract circuit.
 #[derive(Debug, Deserialize, Serialize)]
 pub struct ModelCircuit {
     /// Power-of-2 bound on the number of rows in the circuit.
     pub k: usize,
+    /// Number of rows in the circuit.
+    pub rows: usize,
+    /// Minimum value for k needed for this circuit
+    pub min_k: usize,
     /// Maximum degree of the circuit.
     pub max_deg: usize,
     /// Number of advice columns.
@@ -144,6 +174,8 @@ pub struct ModelCircuit {
     pub point_sets: usize,
     /// Size of the proof for the circuit
     pub size: usize,
+    /// The gate usages.
+    pub gate_usages: Vec<GateUsage>,
 }
 
 impl CostOptions {
@@ -236,6 +268,9 @@ impl CostOptions {
             column_queries,
             point_sets,
             size,
+            gate_usages: self.gate_usages.clone(),
+            rows: self.compressed_rows_count,
+            min_k: self.min_k,
         }
     }
 }
@@ -309,6 +344,53 @@ pub fn from_circuit_to_cost_model_options<F: Ord + Field + FromUniformBytes<64>,
 
     let k = prover.k.try_into().unwrap();
 
+    // The _total_ number of rows is the ending index of the last region (when
+    // regions are ordered in increasing row indices). Note that this
+    // computation does't assume that `regions` is already in order of
+    // increasing row indices. The _compressed_ number of rows only
+    let (expanded_rows_count, compressed_rows_count, min_k) = {
+        let mut min_k = 0; // This is to account for lookup tables
+        let mut expanded_rows_count = 0;
+        let mut compressed_rows_count = 0;
+        for region in prover.regions {
+            if region.name.contains("table") { // Account for lookup tables separately
+                let (start, end) = region.rows.expect("region.rows should be known by now");
+                min_k = std::cmp::max(min_k, end - start);
+            } else {
+                let (start, end) = region.rows.expect("region.rows should be known by now");
+                expanded_rows_count = expanded_rows_count + ((end - start) + 1);
+                compressed_rows_count = std::cmp::max(compressed_rows_count, end + 1);
+            }
+
+            min_k = std::cmp::max(min_k, compressed_rows_count);
+        }
+        (expanded_rows_count, compressed_rows_count, min_k)
+    };
+
+    let min_k = (min_k as f64).log2().ceil() as usize;
+
+    let gate_usages: Vec<GateUsage> = cs
+        .gates()
+        .iter()
+        .map(|gate| {
+            let degree = gate
+                .polynomials()
+                .iter()
+                .fold(0, |d, e| cmp::max(d, e.degree()));
+            let uses = gate.queried_selectors().iter().fold(0, |n, selector| {
+                prover.selectors[selector.0]
+                    .iter()
+                    .fold(n, |n, b| n + (*b as usize))
+            });
+            GateUsage {
+                name: gate.name().to_string(),
+                degree,
+                uses,
+            }
+        })
+        .collect();
+
+
     CostOptions {
         advice,
         instance,
@@ -319,5 +401,9 @@ pub fn from_circuit_to_cost_model_options<F: Ord + Field + FromUniformBytes<64>,
         permutation,
         shuffle,
         k,
+        min_k,
+        expanded_rows_count,
+        compressed_rows_count,
+        gate_usages,
     }
 }
