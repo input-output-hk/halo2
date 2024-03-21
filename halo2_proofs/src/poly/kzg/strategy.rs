@@ -1,5 +1,5 @@
 use super::{
-    commitment::{KZGCommitmentScheme, ParamsKZG},
+    commitment::{KZGCommitmentScheme, ParamsVerifierKZG},
     msm::DualMSM,
 };
 use crate::{
@@ -66,7 +66,7 @@ where
     E::G1: CurveExt<AffineExt = E::G1Affine>,
 {
     /// Constructs an empty batch verifier
-    pub fn new(params: &'params ParamsKZG<E>) -> Self {
+    pub fn new(params: &'params ParamsVerifierKZG<E>) -> Self {
         AccumulatorStrategy {
             msm_accumulator: DualMSM::new(params),
         }
@@ -94,7 +94,7 @@ where
     E::G1: CurveExt<AffineExt = E::G1Affine>,
 {
     /// Constructs an empty batch verifier
-    pub fn new(params: &'params ParamsKZG<E>) -> Self {
+    pub fn new(params: &'params ParamsVerifierKZG<E>) -> Self {
         SingleStrategy {
             msm: DualMSM::new(params),
         }
@@ -118,7 +118,7 @@ where
 {
     type Output = Self;
 
-    fn new(params: &'params ParamsKZG<E>) -> Self {
+    fn new(params: &'params ParamsVerifierKZG<E>) -> Self {
         AccumulatorStrategy::new(params)
     }
 
@@ -157,7 +157,7 @@ where
 {
     type Output = ();
 
-    fn new(params: &'params ParamsKZG<E>) -> Self {
+    fn new(params: &'params ParamsVerifierKZG<E>) -> Self {
         Self::new(params)
     }
 

@@ -8,7 +8,7 @@ use crate::arithmetic::{
 use crate::helpers::SerdeCurveAffine;
 use crate::poly::commitment::Verifier;
 use crate::poly::commitment::MSM;
-use crate::poly::kzg::commitment::{KZGCommitmentScheme, ParamsKZG};
+use crate::poly::kzg::commitment::{KZGCommitmentScheme, ParamsVerifierKZG};
 use crate::poly::kzg::msm::DualMSM;
 use crate::poly::kzg::msm::{PreMSM, MSMKZG};
 use crate::poly::kzg::strategy::GuardKZG;
@@ -23,7 +23,7 @@ use std::ops::MulAssign;
 /// Concrete KZG multiopen verifier with SHPLONK variant
 #[derive(Debug)]
 pub struct VerifierSHPLONK<'params, E: Engine> {
-    params: &'params ParamsKZG<E>,
+    params: &'params ParamsVerifierKZG<E>,
 }
 
 impl<'params, E> Verifier<'params, KZGCommitmentScheme<E>> for VerifierSHPLONK<'params, E>
@@ -39,7 +39,7 @@ where
 
     const QUERY_INSTANCE: bool = false;
 
-    fn new(params: &'params ParamsKZG<E>) -> Self {
+    fn new(params: &'params ParamsVerifierKZG<E>) -> Self {
         Self { params }
     }
 
@@ -126,7 +126,7 @@ where
             r_outer_acc += power_of_v * r_inner_acc * z_diff_i;
         }
         let mut outer_msm = outer_msm.normalize();
-        let g1: E::G1 = self.params.g[0].into();
+        let g1: E::G1 = self.params.g.into();
         outer_msm.append_term(-r_outer_acc, g1);
         outer_msm.append_term(-z_0, h1.into());
         outer_msm.append_term(*u, h2.into());

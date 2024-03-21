@@ -91,11 +91,15 @@ pub trait ParamsProver<'params, C: CurveAffine>: Params<'params, C> {
     fn get_g(&self) -> &[C];
 
     /// Returns verification parameters.
-    fn verifier_params(&'params self) -> &'params Self::ParamsVerifier;
+    fn into_verifier_params(self) -> Self::ParamsVerifier;
 }
 
 /// Verifier specific functionality with circuit constraints
-pub trait ParamsVerifier<'params, C: CurveAffine>: Params<'params, C> {}
+pub trait ParamsVerifier<'params, C: CurveAffine>: Params<'params, C> {
+    /// Returns the size of the trimed parameters.
+    /// This is the maximum size of the PI that these params can be used to commit to.
+    fn trimed_size(&self) -> u64;
+}
 
 /// Multi scalar multiplication engine
 pub trait MSM<C: CurveAffine>: Clone + Debug + Send + Sync {
