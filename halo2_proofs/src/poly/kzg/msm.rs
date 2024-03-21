@@ -1,6 +1,6 @@
 use std::fmt::Debug;
 
-use super::commitment::ParamsKZG;
+use super::commitment::ParamsVerifierKZG;
 use crate::{
     arithmetic::{best_multiexp, parallelize},
     poly::commitment::MSM,
@@ -109,8 +109,10 @@ impl<E: Engine + Debug> PreMSM<E> {
     }
 }
 
-impl<'params, E: MultiMillerLoop + Debug> From<&'params ParamsKZG<E>> for DualMSM<'params, E> {
-    fn from(params: &'params ParamsKZG<E>) -> Self {
+impl<'params, E: MultiMillerLoop + Debug> From<&'params ParamsVerifierKZG<E>>
+    for DualMSM<'params, E>
+{
+    fn from(params: &'params ParamsVerifierKZG<E>) -> Self {
         DualMSM::new(params)
     }
 }
@@ -118,14 +120,14 @@ impl<'params, E: MultiMillerLoop + Debug> From<&'params ParamsKZG<E>> for DualMS
 /// Two channel MSM accumulator
 #[derive(Debug, Clone)]
 pub struct DualMSM<'a, E: Engine> {
-    pub(crate) params: &'a ParamsKZG<E>,
+    pub(crate) params: &'a ParamsVerifierKZG<E>,
     pub(crate) left: MSMKZG<E>,
     pub(crate) right: MSMKZG<E>,
 }
 
 impl<'a, E: MultiMillerLoop + Debug> DualMSM<'a, E> {
     /// Create a new two channel MSM accumulator instance
-    pub fn new(params: &'a ParamsKZG<E>) -> Self {
+    pub fn new(params: &'a ParamsVerifierKZG<E>) -> Self {
         Self {
             params,
             left: MSMKZG::new(),

@@ -1,5 +1,5 @@
 use super::{
-    commitment::{KZGCommitmentScheme, ParamsKZG},
+    commitment::{KZGCommitmentScheme, ParamsVerifierKZG},
     msm::DualMSM,
 };
 use crate::{
@@ -47,7 +47,7 @@ pub struct AccumulatorStrategy<'params, E: Engine> {
 
 impl<'params, E: MultiMillerLoop + Debug> AccumulatorStrategy<'params, E> {
     /// Constructs an empty batch verifier
-    pub fn new(params: &'params ParamsKZG<E>) -> Self {
+    pub fn new(params: &'params ParamsVerifierKZG<E>) -> Self {
         AccumulatorStrategy {
             msm_accumulator: DualMSM::new(params),
         }
@@ -67,7 +67,7 @@ pub struct SingleStrategy<'params, E: Engine> {
 
 impl<'params, E: MultiMillerLoop + Debug> SingleStrategy<'params, E> {
     /// Constructs an empty batch verifier
-    pub fn new(params: &'params ParamsKZG<E>) -> Self {
+    pub fn new(params: &'params ParamsVerifierKZG<E>) -> Self {
         SingleStrategy {
             msm: DualMSM::new(params),
         }
@@ -91,7 +91,7 @@ where
 {
     type Output = Self;
 
-    fn new(params: &'params ParamsKZG<E>) -> Self {
+    fn new(params: &'params ParamsVerifierKZG<E>) -> Self {
         AccumulatorStrategy::new(params)
     }
 
@@ -130,7 +130,7 @@ where
 {
     type Output = ();
 
-    fn new(params: &'params ParamsKZG<E>) -> Self {
+    fn new(params: &'params ParamsVerifierKZG<E>) -> Self {
         Self::new(params)
     }
 

@@ -5,7 +5,7 @@ use crate::arithmetic::powers;
 use crate::helpers::SerdeCurveAffine;
 use crate::poly::commitment::Verifier;
 use crate::poly::commitment::MSM;
-use crate::poly::kzg::commitment::{KZGCommitmentScheme, ParamsKZG};
+use crate::poly::kzg::commitment::{KZGCommitmentScheme, ParamsVerifierKZG};
 use crate::poly::kzg::msm::{DualMSM, MSMKZG};
 use crate::poly::kzg::strategy::GuardKZG;
 use crate::poly::query::Query;
@@ -19,7 +19,7 @@ use halo2curves::pairing::{Engine, MultiMillerLoop};
 #[derive(Debug)]
 /// Concrete KZG verifier with GWC variant
 pub struct VerifierGWC<'params, E: Engine> {
-    params: &'params ParamsKZG<E>,
+    params: &'params ParamsVerifierKZG<E>,
 }
 
 impl<'params, E> Verifier<'params, KZGCommitmentScheme<E>> for VerifierGWC<'params, E>
@@ -34,7 +34,7 @@ where
 
     const QUERY_INSTANCE: bool = false;
 
-    fn new(params: &'params ParamsKZG<E>) -> Self {
+    fn new(params: &'params ParamsVerifierKZG<E>) -> Self {
         Self { params }
     }
 
@@ -115,7 +115,7 @@ where
 
         msm_accumulator.right.add_msm(&witness_with_aux);
         msm_accumulator.right.add_msm(&commitment_multi);
-        let g0: E::G1 = self.params.g[0].into();
+        let g0: E::G1 = self.params.g.into();
         msm_accumulator.right.append_term(eval_multi, -g0);
 
         Ok(Self::Guard::new(msm_accumulator))
