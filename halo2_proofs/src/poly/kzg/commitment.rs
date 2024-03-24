@@ -39,8 +39,6 @@ pub struct ParamsVerifierKZG<E: Engine> {
     pub(crate) trimed_size: u32,
 
     pub(crate) g_lagrange: Vec<E::G1Affine>,
-    pub(crate) g: E::G1Affine,
-    pub(crate) g2: E::G2Affine,
     pub(crate) s_g2: E::G2Affine,
 }
 
@@ -311,8 +309,6 @@ where
         for el in self.g_lagrange.iter() {
             el.write(writer, format)?;
         }
-        self.g.write(writer, format)?;
-        self.g2.write(writer, format)?;
         self.s_g2.write(writer, format)?;
         Ok(())
     }
@@ -374,8 +370,6 @@ where
                 .map(|_| <E::G1Affine as SerdeCurveAffine>::read(reader, format).unwrap())
                 .collect::<Vec<_>>(),
         };
-        let g = <E::G1Affine as SerdeCurveAffine>::read(reader, format)?;
-        let g2 = E::G2Affine::read(reader, format)?;
         let s_g2 = E::G2Affine::read(reader, format)?;
 
         Ok(Self {
@@ -383,8 +377,6 @@ where
             n,
             trimed_size,
             g_lagrange,
-            g,
-            g2,
             s_g2,
         })
     }
@@ -397,8 +389,6 @@ impl<E: Engine + Debug> From<ParamsKZG<E>> for ParamsVerifierKZG<E> {
             n: value.n,
             trimed_size: value.n as u32,
             g_lagrange: value.g_lagrange.clone(),
-            g: value.g[0],
-            g2: value.g2,
             s_g2: value.s_g2,
         }
     }
@@ -411,8 +401,6 @@ impl<E: Engine + Debug> From<&ParamsKZG<E>> for ParamsVerifierKZG<E> {
             n: value.n,
             trimed_size: value.n as u32,
             g_lagrange: value.g_lagrange.clone(),
-            g: value.g[0],
-            g2: value.g2,
             s_g2: value.s_g2,
         }
     }
@@ -555,10 +543,6 @@ where
         let size = scalars.len();
         assert!(bases.len() >= size);
         best_multiexp(&scalars, &bases[0..size])
-    }
-
-    fn get_g(&self) -> &[E::G1Affine] {
-        &self.g
     }
 }
 

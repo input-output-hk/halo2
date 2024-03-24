@@ -5,6 +5,7 @@ use crate::{
     arithmetic::{best_multiexp, parallelize},
     poly::commitment::MSM,
 };
+use group::prime::PrimeCurveAffine;
 use group::{Curve, Group};
 use halo2curves::pairing::{Engine, MillerLoopResult, MultiMillerLoop};
 
@@ -63,7 +64,6 @@ impl<E: Engine + Debug> MSM<E::G1Affine> for MSMKZG<E> {
     }
 
     fn eval(&self) -> E::G1 {
-        use group::prime::PrimeCurveAffine;
         let mut bases = vec![E::G1Affine::identity(); self.scalars.len()];
         E::G1::batch_normalize(&self.bases, &mut bases);
         best_multiexp(&self.scalars, &bases)
@@ -150,7 +150,7 @@ impl<'a, E: MultiMillerLoop + Debug> DualMSM<'a, E> {
     /// Performs final pairing check with given verifier params and two channel linear combination
     pub fn check(self) -> bool {
         let s_g2_prepared = E::G2Prepared::from(self.params.s_g2);
-        let n_g2_prepared = E::G2Prepared::from(-self.params.g2);
+        let n_g2_prepared = E::G2Prepared::from(-E::G2Affine::generator());
 
         let left = self.left.eval();
         let right = self.right.eval();

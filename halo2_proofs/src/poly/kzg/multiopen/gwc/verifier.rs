@@ -1,4 +1,5 @@
 use std::fmt::Debug;
+use std::marker::PhantomData;
 
 use super::{construct_intermediate_sets, ChallengeU, ChallengeV};
 use crate::arithmetic::powers;
@@ -14,15 +15,16 @@ use crate::poly::Error;
 use crate::transcript::{EncodedChallenge, TranscriptRead};
 
 use ff::{Field, PrimeField};
+use group::prime::PrimeCurveAffine;
 use halo2curves::pairing::{Engine, MultiMillerLoop};
 
 #[derive(Debug)]
 /// Concrete KZG verifier with GWC variant
-pub struct VerifierGWC<'params, E: Engine> {
-    params: &'params ParamsVerifierKZG<E>,
+pub struct VerifierGWC<E: Engine> {
+    _p0: PhantomData<E>,
 }
 
-impl<'params, E> Verifier<'params, KZGCommitmentScheme<E>> for VerifierGWC<'params, E>
+impl<'params, E> Verifier<'params, KZGCommitmentScheme<E>> for VerifierGWC<E>
 where
     E: MultiMillerLoop + Debug,
     E::Scalar: PrimeField,
@@ -34,8 +36,10 @@ where
 
     const QUERY_INSTANCE: bool = false;
 
-    fn new(params: &'params ParamsVerifierKZG<E>) -> Self {
-        Self { params }
+    fn new(_params: &'params ParamsVerifierKZG<E>) -> Self {
+        Self {
+            _p0: PhantomData::default(),
+        }
     }
 
     fn verify_proof<
@@ -115,7 +119,7 @@ where
 
         msm_accumulator.right.add_msm(&witness_with_aux);
         msm_accumulator.right.add_msm(&commitment_multi);
-        let g0: E::G1 = self.params.g.into();
+        let g0: E::G1 = E::G1Affine::generator().into();
         msm_accumulator.right.append_term(eval_multi, -g0);
 
         Ok(Self::Guard::new(msm_accumulator))
