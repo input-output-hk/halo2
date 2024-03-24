@@ -40,8 +40,6 @@ pub struct ParamsVerifierKZG<E: Engine> {
     pub(crate) trimed_size: u32,
 
     pub(crate) g_lagrange: Vec<E::G1Affine>,
-    pub(crate) g: E::G1Affine,
-    pub(crate) g2: E::G2Affine,
     pub(crate) s_g2: E::G2Affine,
 }
 
@@ -75,6 +73,7 @@ where
 impl<E: Engine + Debug> ParamsKZG<E>
 where
     E::G1Affine: SerdeCurveAffine,
+    E::G2Affine: SerdeCurveAffine,
     E::G1: CurveExt<AffineExt = E::G1Affine>,
 {
     /// Initializes parameters for the curve, draws toxic secret from given rng.
@@ -287,7 +286,8 @@ where
 
 impl<E: Engine + Debug> ParamsVerifierKZG<E>
 where
-    E::Scalar: PrimeField,
+    E::Fr: PrimeField,
+    E::G1: CurveExt<AffineExt = E::G1Affine>,
     E::G1Affine: SerdeCurveAffine,
     E::G2Affine: SerdeCurveAffine,
 {
@@ -311,8 +311,6 @@ where
         for el in self.g_lagrange.iter() {
             el.write(writer, format)?;
         }
-        self.g.write(writer, format)?;
-        self.g2.write(writer, format)?;
         self.s_g2.write(writer, format)?;
         Ok(())
     }
@@ -374,8 +372,6 @@ where
                 .map(|_| <E::G1Affine as SerdeCurveAffine>::read(reader, format).unwrap())
                 .collect::<Vec<_>>(),
         };
-        let g = <E::G1Affine as SerdeCurveAffine>::read(reader, format)?;
-        let g2 = E::G2Affine::read(reader, format)?;
         let s_g2 = E::G2Affine::read(reader, format)?;
 
         Ok(Self {
@@ -383,8 +379,6 @@ where
             n,
             trimed_size,
             g_lagrange,
-            g,
-            g2,
             s_g2,
         })
     }
@@ -397,8 +391,6 @@ impl<E: Engine + Debug> From<ParamsKZG<E>> for ParamsVerifierKZG<E> {
             n: value.n,
             trimed_size: value.n as u32,
             g_lagrange: value.g_lagrange.clone(),
-            g: value.g[0],
-            g2: value.g2,
             s_g2: value.s_g2,
         }
     }
@@ -411,8 +403,6 @@ impl<E: Engine + Debug> From<&ParamsKZG<E>> for ParamsVerifierKZG<E> {
             n: value.n,
             trimed_size: value.n as u32,
             g_lagrange: value.g_lagrange.clone(),
-            g: value.g[0],
-            g2: value.g2,
             s_g2: value.s_g2,
         }
     }
@@ -493,11 +483,7 @@ where
         MSMKZG::new()
     }
 
-    fn commit_lagrange(
-        &self,
-        poly: &Polynomial<E::Scalar, LagrangeCoeff>,
-        _: Blind<E::Scalar>,
-    ) -> E::G1 {
+    fn commit_lagrange(&self, poly: &Polynomial<E::Fr, LagrangeCoeff>, _: Blind<E::Fr>) -> E::G1 {
         let mut scalars = Vec::with_capacity(poly.len());
         scalars.extend(poly.iter());
         let bases = &self.g_lagrange;
@@ -519,8 +505,8 @@ where
 
 impl<'params, E: Engine + Debug> ParamsVerifier<'params, E::G1Affine> for ParamsVerifierKZG<E>
 where
-    E::Scalar: PrimeField,
-    E::G1Affine: SerdeCurveAffine,
+    E::G1Affine: SerdeCurveAffine<ScalarExt = <E as Engine>::Fr, CurveExt = <E as Engine>::G1>,
+    E::G1: CurveExt<AffineExt = E::G1Affine>,
     E::G2Affine: SerdeCurveAffine,
 {
     fn trimed_size(&self) -> u64 {
@@ -551,10 +537,6 @@ where
         let size = scalars.len();
         assert!(bases.len() >= size);
         best_multiexp(&scalars, &bases[0..size])
-    }
-
-    fn get_g(&self) -> &[E::G1Affine] {
-        &self.g
     }
 }
 
