@@ -7,7 +7,7 @@ use super::{
     VerifyingKey,
 };
 use crate::arithmetic::compute_inner_product;
-use crate::poly::commitment::{CommitmentScheme, Verifier};
+use crate::poly::commitment::{CommitmentScheme, ParamsVerifier, Verifier};
 use crate::poly::VerificationStrategy;
 use crate::poly::{
     commitment::{Blind, Params},
@@ -52,7 +52,9 @@ where
                 instance
                     .iter()
                     .map(|instance| {
-                        if instance.len() > params.n() as usize - (vk.cs.blinding_factors() + 1) {
+                        if instance.len()
+                            > params.trimed_size() as usize - (vk.cs.blinding_factors() + 1)
+                        {
                             return Err(Error::InstanceTooLarge);
                         }
                         let mut poly = instance.to_vec();
