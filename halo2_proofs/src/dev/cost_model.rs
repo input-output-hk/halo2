@@ -54,7 +54,7 @@ pub struct CostOptions {
 
     /// Minimum value of k needed to account for the circuit
     pub min_k: usize,
-	
+
     /// Expanded rows count, which does not account for compression (where
     /// multiple regions can use the same rows).
     pub expanded_rows_count: usize,
@@ -139,7 +139,7 @@ impl Shuffle {
 
 /// Information about how a gate (see plonk::circuit::Gate) is used in the
 /// circuit.
-#[derive(Clone, Debug, Deserialize, Serialize)] 
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct GateUsage {
     /// The name of the gate.
     pub name: String,
@@ -353,16 +353,25 @@ pub fn from_circuit_to_cost_model_options<F: Ord + Field + FromUniformBytes<64>,
         let mut expanded_rows_count = 0;
         let mut compressed_rows_count = 0;
         for region in prover.regions {
-            if region.name.contains("table") { // Account for lookup tables separately
-                let (start, end) = region.rows.expect("region.rows should be known by now");
-                min_k = std::cmp::max(min_k, end - start);
-            } else {
-                let (start, end) = region.rows.expect("region.rows should be known by now");
-                expanded_rows_count = expanded_rows_count + ((end - start) + 1);
-                compressed_rows_count = std::cmp::max(compressed_rows_count, end + 1);
-            }
+            // If `region.rows == None`, then that region has no rows (e.g. just copy constraints)
+            if let Some((start, end)) = region.rows {
+                // A region is a _table region_ if all of its columns are `Fixed`
+                // columns (see that [`plonk::circuit::TableColumn` is a wrapper
+                // around `Column<Fixed>`]). All of a table region's rows are
+                // counted towards `table_rows_count.`
+                if region
+                    .columns
+                    .iter()
+                    .all(|c| *c.column_type() == crate::plonk::Any::Fixed)
+                {
+                    min_k = std::cmp::max(min_k, end - start);
+                } else {
+                    expanded_rows_count += (end - start) + 1;
+                    compressed_rows_count = std::cmp::max(compressed_rows_count, end + 1);
+                }
 
-            min_k = std::cmp::max(min_k, compressed_rows_count);
+                min_k = std::cmp::max(min_k, compressed_rows_count);
+            }
         }
         (expanded_rows_count, compressed_rows_count, min_k)
     };
@@ -389,7 +398,6 @@ pub fn from_circuit_to_cost_model_options<F: Ord + Field + FromUniformBytes<64>,
             }
         })
         .collect();
-
 
     CostOptions {
         advice,
