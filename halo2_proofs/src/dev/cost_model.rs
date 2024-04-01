@@ -355,18 +355,22 @@ pub fn from_circuit_to_cost_model_options<F: Ord + Field + FromUniformBytes<64>,
         for region in prover.regions {
             // If `region.rows == None`, then that region has no rows (e.g. just copy constraints)
             if let Some((start, end)) = region.rows {
+                // Note that `end` is the index of the last row, so when
+                // counting rows, this last row needs to be counted via `end +
+                // 1`.
+
                 // A region is a _table region_ if all of its columns are `Fixed`
-                // columns (see that [`plonk::circuit::TableColumn` is a wrapper
-                // around `Column<Fixed>`]). All of a table region's rows are
+                // columns (see that `plonk::circuit::TableColumn` is a wrapper
+                // around `Column<Fixed>`). All of a table region's rows are
                 // counted towards `table_rows_count.`
                 if region
                     .columns
                     .iter()
                     .all(|c| *c.column_type() == crate::plonk::Any::Fixed)
                 {
-                    min_k = std::cmp::max(min_k, end - start);
+                    min_k = std::cmp::max(min_k, (end + 1) - start);
                 } else {
-                    expanded_rows_count += (end - start) + 1;
+                    expanded_rows_count += (end + 1) - start;
                     compressed_rows_count = std::cmp::max(compressed_rows_count, end + 1);
                 }
 
