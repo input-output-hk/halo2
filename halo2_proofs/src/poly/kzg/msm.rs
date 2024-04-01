@@ -1,10 +1,11 @@
 use std::fmt::Debug;
 
-use super::commitment::ParamsKZG;
+use super::commitment::ParamsVerifierKZG;
 use crate::{
     arithmetic::{best_multiexp, parallelize},
     poly::commitment::MSM,
 };
+use group::prime::PrimeCurveAffine;
 use group::{Curve, Group};
 use halo2curves::pairing::{Engine, MillerLoopResult, MultiMillerLoop};
 
@@ -63,7 +64,6 @@ impl<E: Engine + Debug> MSM<E::G1Affine> for MSMKZG<E> {
     }
 
     fn eval(&self) -> E::G1 {
-        use group::prime::PrimeCurveAffine;
         let mut bases = vec![E::G1Affine::identity(); self.scalars.len()];
         E::G1::batch_normalize(&self.bases, &mut bases);
         best_multiexp(&self.scalars, &bases)
@@ -109,8 +109,10 @@ impl<E: Engine + Debug> PreMSM<E> {
     }
 }
 
-impl<'params, E: MultiMillerLoop + Debug> From<&'params ParamsKZG<E>> for DualMSM<'params, E> {
-    fn from(params: &'params ParamsKZG<E>) -> Self {
+impl<'params, E: MultiMillerLoop + Debug> From<&'params ParamsVerifierKZG<E>>
+    for DualMSM<'params, E>
+{
+    fn from(params: &'params ParamsVerifierKZG<E>) -> Self {
         DualMSM::new(params)
     }
 }
@@ -118,14 +120,14 @@ impl<'params, E: MultiMillerLoop + Debug> From<&'params ParamsKZG<E>> for DualMS
 /// Two channel MSM accumulator
 #[derive(Debug, Clone)]
 pub struct DualMSM<'a, E: Engine> {
-    pub(crate) params: &'a ParamsKZG<E>,
+    pub(crate) params: &'a ParamsVerifierKZG<E>,
     pub(crate) left: MSMKZG<E>,
     pub(crate) right: MSMKZG<E>,
 }
 
 impl<'a, E: MultiMillerLoop + Debug> DualMSM<'a, E> {
     /// Create a new two channel MSM accumulator instance
-    pub fn new(params: &'a ParamsKZG<E>) -> Self {
+    pub fn new(params: &'a ParamsVerifierKZG<E>) -> Self {
         Self {
             params,
             left: MSMKZG::new(),
@@ -148,7 +150,7 @@ impl<'a, E: MultiMillerLoop + Debug> DualMSM<'a, E> {
     /// Performs final pairing check with given verifier params and two channel linear combination
     pub fn check(self) -> bool {
         let s_g2_prepared = E::G2Prepared::from(self.params.s_g2);
-        let n_g2_prepared = E::G2Prepared::from(-self.params.g2);
+        let n_g2_prepared = E::G2Prepared::from(-E::G2Affine::generator());
 
         let left = self.left.eval();
         let right = self.right.eval();

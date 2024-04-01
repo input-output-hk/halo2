@@ -56,7 +56,12 @@ impl<C: CurveAffine> CommitmentScheme for IPACommitmentScheme<C> {
 /// Verifier parameters
 pub type ParamsVerifierIPA<C> = ParamsIPA<C>;
 
-impl<'params, C: CurveAffine> ParamsVerifier<'params, C> for ParamsIPA<C> {}
+impl<'params, C: CurveAffine> ParamsVerifier<'params, C> for ParamsIPA<C> {
+    fn trimed_size(&self) -> u64 {
+        // IPA parameters are never trimed so their sized is always the full size of the domain.
+        self.n
+    }
+}
 
 impl<'params, C: CurveAffine> Params<'params, C> for ParamsIPA<C> {
     type MSM = MSMIPA<'params, C>;
@@ -145,7 +150,7 @@ impl<'params, C: CurveAffine> Params<'params, C> for ParamsIPA<C> {
 impl<'params, C: CurveAffine> ParamsProver<'params, C> for ParamsIPA<C> {
     type ParamsVerifier = ParamsVerifierIPA<C>;
 
-    fn verifier_params(&'params self) -> &'params Self::ParamsVerifier {
+    fn into_verifier_params(self) -> Self::ParamsVerifier {
         self
     }
 
@@ -220,10 +225,6 @@ impl<'params, C: CurveAffine> ParamsProver<'params, C> for ParamsIPA<C> {
         tmp_bases.push(self.w);
 
         best_multiexp::<C>(&tmp_scalars, &tmp_bases)
-    }
-
-    fn get_g(&self) -> &[C] {
-        &self.g
     }
 }
 
