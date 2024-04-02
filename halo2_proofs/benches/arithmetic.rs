@@ -1,12 +1,12 @@
 #[macro_use]
 extern crate criterion;
 
-use crate::arithmetic::small_multiexp;
+use crate::arithmetic::{parallelize, small_multiexp, CurveAffine, CurveExt};
 use crate::halo2curves::pasta::{EqAffine, Fp};
+use group::cofactor::CofactorCurveAffine;
 use group::ff::Field;
+use group::{Curve, Group};
 use halo2_proofs::*;
-
-use halo2_proofs::poly::{commitment::ParamsProver, ipa::commitment::ParamsIPA};
 
 use criterion::{black_box, Criterion};
 use rand_core::OsRng;
@@ -16,8 +16,40 @@ fn criterion_benchmark(c: &mut Criterion) {
 
     // small multiexp
     {
-        let params: ParamsIPA<EqAffine> = ParamsIPA::new(5);
-        let g = &mut params.get_g().to_vec();
+        let k = 5u32;
+        let n: u64 = 1 << k;
+        let id = <EqAffine as CofactorCurveAffine>::Curve::identity();
+
+        let g_projective = {
+            let mut g = Vec::with_capacity(n as usize);
+            g.resize(n as usize, id);
+
+            parallelize(&mut g, move |g, start| {
+                let hasher = <EqAffine as CurveAffine>::CurveExt::hash_to_curve("Halo2-Parameters");
+
+                for (i, g) in g.iter_mut().enumerate() {
+                    let i = (i + start) as u32;
+
+                    let mut message = [0u8; 5];
+                    message[1..5].copy_from_slice(&i.to_le_bytes());
+
+                    *g = hasher(&message);
+                }
+            });
+
+            g
+        };
+
+        let mut g = {
+            let mut g: Vec<EqAffine> = vec![id.into(); n as usize];
+            parallelize(&mut g, |g, starts| {
+                <EqAffine as CofactorCurveAffine>::Curve::batch_normalize(
+                    &g_projective[starts..(starts + g.len())],
+                    g,
+                );
+            });
+            g
+        };
         let len = g.len() / 2;
         let (g_lo, g_hi) = g.split_at_mut(len);
 
