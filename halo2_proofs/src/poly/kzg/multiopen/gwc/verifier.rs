@@ -38,9 +38,7 @@ where
     const QUERY_INSTANCE: bool = false;
 
     fn new(_params: &'params ParamsVerifierKZG<E>) -> Self {
-        Self {
-            _p0: PhantomData::default(),
-        }
+        Self { _p0: PhantomData }
     }
 
     fn verify_proof<
