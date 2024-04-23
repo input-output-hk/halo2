@@ -386,7 +386,7 @@ where
     /// WITHOUT performing the expensive Montgomery reduction.
     /// Does so by first writing the verifying key and then serializing the rest of the data (in the form of field polynomials)
     pub fn write<W: io::Write>(&self, writer: &mut W, format: SerdeFormat) -> io::Result<()> {
-        self.vk.write(writer, format)?;
+        //self.vk.write(writer, format)?;
         write_polynomial_slice(&self.fixed_values, writer, format)?;
         self.permutation.write(writer, format)?;
         Ok(())

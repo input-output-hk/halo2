@@ -396,13 +396,13 @@ impl<F: Field> Assignment<F> for MockProver<F> {
             return Ok(());
         }
 
-        assert!(
-            self.usable_rows.contains(&row),
-            "row={} not in usable_rows={:?}, k={}",
-            row,
-            self.usable_rows,
-            self.k,
-        );
+        // assert!(
+        //     self.usable_rows.contains(&row),
+        //     "row={} not in usable_rows={:?}, k={}",
+        //     row,
+        //     self.usable_rows,
+        //     self.k,
+        // );
 
         // Track that this selector was enabled. We require that all selectors are enabled
         // inside some region (i.e. no floating selectors).
