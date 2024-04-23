@@ -426,15 +426,27 @@ where
         let fixed_values = read_polynomial_vec(reader, format)?;
         // let fixed_polys = read_polynomial_vec(reader, format)?;
         // let fixed_cosets = read_polynomial_vec(reader, format)?;
+        let t0 = Instant::now();
         let fixed_polys: Vec<_> = fixed_values
             .iter()
             .map(|poly| vk.domain.lagrange_to_coeff(poly.clone()))
             .collect();
 
+        println!(
+            "fixed_polys computation: {} seconds",
+            t0.elapsed().as_secs()
+        );
+        let t1 = Instant::now();
+
         let fixed_cosets = fixed_polys
             .iter()
             .map(|poly| vk.domain.coeff_to_extended(poly.clone()))
             .collect();
+
+        println!(
+            "fixed_cosets computation: {} seconds",
+            t1.elapsed().as_secs()
+        );
         let permutation = permutation::ProvingKey::read(reader, format)?;
         let ev = Evaluator::new(vk.cs());
         Ok(Self {
