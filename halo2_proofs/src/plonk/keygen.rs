@@ -78,9 +78,9 @@ impl<F: Field> Assignment<F> for Assembly<F> {
         A: FnOnce() -> AR,
         AR: Into<String>,
     {
-        // if !self.usable_rows.contains(&row) {
-        //     return Err(Error::not_enough_rows_available(self.k));
-        // }
+        if !self.usable_rows.contains(&row) {
+            return Err(Error::not_enough_rows_available(self.k));
+        }
 
         self.selectors[selector.0][row] = true;
 
@@ -88,9 +88,9 @@ impl<F: Field> Assignment<F> for Assembly<F> {
     }
 
     fn query_instance(&self, _: Column<Instance>, row: usize) -> Result<Value<F>, Error> {
-        // if !self.usable_rows.contains(&row) {
-        //     return Err(Error::not_enough_rows_available(self.k));
-        // }
+        if !self.usable_rows.contains(&row) {
+            return Err(Error::not_enough_rows_available(self.k));
+        }
 
         // There is no instance in this context.
         Ok(Value::unknown())
@@ -126,6 +126,8 @@ impl<F: Field> Assignment<F> for Assembly<F> {
         A: FnOnce() -> AR,
         AR: Into<String>,
     {
+        // Fix columns should not require blinding, so let us disable this check in order to
+        // not need to jump to the next domain size when using tight lookup tables.
         // if !self.usable_rows.contains(&row) {
         //     return Err(Error::not_enough_rows_available(self.k));
         // }
@@ -146,9 +148,9 @@ impl<F: Field> Assignment<F> for Assembly<F> {
         right_column: Column<Any>,
         right_row: usize,
     ) -> Result<(), Error> {
-        // if !self.usable_rows.contains(&left_row) || !self.usable_rows.contains(&right_row) {
-        //     return Err(Error::not_enough_rows_available(self.k));
-        // }
+        if !self.usable_rows.contains(&left_row) || !self.usable_rows.contains(&right_row) {
+            return Err(Error::not_enough_rows_available(self.k));
+        }
 
         self.permutation
             .copy(left_column, left_row, right_column, right_row)
@@ -160,9 +162,9 @@ impl<F: Field> Assignment<F> for Assembly<F> {
         from_row: usize,
         to: Value<Assigned<F>>,
     ) -> Result<(), Error> {
-        // if !self.usable_rows.contains(&from_row) {
-        //     return Err(Error::not_enough_rows_available(self.k));
-        // }
+        if !self.usable_rows.contains(&from_row) {
+            return Err(Error::not_enough_rows_available(self.k));
+        }
 
         let col = self
             .fixed
@@ -237,9 +239,9 @@ where
         circuit.params(),
     );
 
-    // if (params.n() as usize) < cs.minimum_rows() {
-    //     return Err(Error::not_enough_rows_available(params.k()));
-    // }
+    if (params.n() as usize) < cs.minimum_rows() {
+        return Err(Error::not_enough_rows_available(params.k()));
+    }
 
     let mut assembly: Assembly<C::Scalar> = Assembly {
         k: params.k(),
@@ -310,9 +312,9 @@ where
 
     let cs = cs;
 
-    // if (params.n() as usize) < cs.minimum_rows() {
-    //     return Err(Error::not_enough_rows_available(params.k()));
-    // }
+    if (params.n() as usize) < cs.minimum_rows() {
+        return Err(Error::not_enough_rows_available(params.k()));
+    }
 
     let mut assembly: Assembly<C::Scalar> = Assembly {
         k: params.k(),
