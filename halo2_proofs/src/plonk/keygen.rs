@@ -343,15 +343,29 @@ where
             .map(|poly| vk.domain.lagrange_from_vec(poly)),
     );
 
+    let t0 = Instant::now();
+
     let fixed_polys: Vec<_> = fixed
         .iter()
         .map(|poly| vk.domain.lagrange_to_coeff(poly.clone()))
         .collect();
 
+    println!(
+        "fixed_polys computation: {} seconds",
+        t0.elapsed().as_secs()
+    );
+
+    let t1 = Instant::now();
+
     let fixed_cosets = fixed_polys
         .iter()
         .map(|poly| vk.domain.coeff_to_extended(poly.clone()))
         .collect();
+
+    println!(
+        "fixed_cosets computation: {} seconds",
+        t1.elapsed().as_secs()
+    );
 
     let permutation_pk = assembly
         .permutation
