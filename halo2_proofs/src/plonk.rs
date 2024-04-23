@@ -19,6 +19,7 @@ use crate::poly::{
 };
 use crate::transcript::{ChallengeScalar, EncodedChallenge, Transcript};
 use crate::SerdeFormat;
+use std::time::Instant;
 
 mod assigned;
 mod circuit;
@@ -391,8 +392,8 @@ where
         self.l_last.write(writer, format)?;
         self.l_active_row.write(writer, format)?;
         write_polynomial_slice(&self.fixed_values, writer, format)?;
-        write_polynomial_slice(&self.fixed_polys, writer, format)?;
-        write_polynomial_slice(&self.fixed_cosets, writer, format)?;
+        // write_polynomial_slice(&self.fixed_polys, writer, format)?;
+        // write_polynomial_slice(&self.fixed_cosets, writer, format)?;
         self.permutation.write(writer, format)?;
         Ok(())
     }
@@ -423,8 +424,17 @@ where
         let l_last = Polynomial::read(reader, format)?;
         let l_active_row = Polynomial::read(reader, format)?;
         let fixed_values = read_polynomial_vec(reader, format)?;
-        let fixed_polys = read_polynomial_vec(reader, format)?;
-        let fixed_cosets = read_polynomial_vec(reader, format)?;
+        // let fixed_polys = read_polynomial_vec(reader, format)?;
+        // let fixed_cosets = read_polynomial_vec(reader, format)?;
+        let fixed_polys: Vec<_> = fixed_values
+            .iter()
+            .map(|poly| vk.domain.lagrange_to_coeff(poly.clone()))
+            .collect();
+
+        let fixed_cosets = fixed_polys
+            .iter()
+            .map(|poly| vk.domain.coeff_to_extended(poly.clone()))
+            .collect();
         let permutation = permutation::ProvingKey::read(reader, format)?;
         let ev = Evaluator::new(vk.cs());
         Ok(Self {
