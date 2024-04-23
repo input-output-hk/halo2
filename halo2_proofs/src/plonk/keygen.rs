@@ -1,6 +1,6 @@
 #![allow(clippy::int_plus_one)]
 
-use std::ops::Range;
+use std::{ops::Range, time::Instant};
 
 use ff::{Field, FromUniformBytes};
 use group::Curve;

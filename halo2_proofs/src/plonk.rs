@@ -19,7 +19,6 @@ use crate::poly::{
 };
 use crate::transcript::{ChallengeScalar, EncodedChallenge, Transcript};
 use crate::SerdeFormat;
-use std::time::Instant;
 
 mod assigned;
 mod circuit;
@@ -434,7 +433,8 @@ where
             .iter()
             .map(|poly| vk.domain.coeff_to_extended(poly.clone()))
             .collect();
-        let permutation = permutation::ProvingKey::read(reader, format)?;
+        let permutation =
+            permutation::ProvingKey::read(reader, format, &vk.domain, &vk.cs.permutation)?;
         let ev = Evaluator::new(vk.cs());
         Ok(Self {
             vk,
