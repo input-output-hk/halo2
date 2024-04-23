@@ -19,6 +19,7 @@ use crate::multicore::{IndexedParallelIterator, IntoParallelRefIterator, Paralle
 
 #[cfg(feature = "thread-safe-region")]
 use std::collections::{BTreeSet, HashMap};
+use std::time::Instant;
 
 #[cfg(not(feature = "thread-safe-region"))]
 /// Struct that accumulates all the necessary data in order to construct the permutation argument.
@@ -368,6 +369,7 @@ pub(crate) fn build_pk<'params, C: CurveAffine, P: Params<'params, C>>(
         });
     }
 
+    let t0 = Instant::now();
     let mut polys = vec![domain.empty_coeff(); p.columns.len()];
     {
         parallelize(&mut polys, |o, start| {
@@ -379,6 +381,9 @@ pub(crate) fn build_pk<'params, C: CurveAffine, P: Params<'params, C>>(
         });
     }
 
+    let t1 = Instant::now();
+    println!("perm_polys computation: {} seconds", t0.elapsed().as_secs());
+
     let mut cosets = vec![domain.empty_extended(); p.columns.len()];
     {
         parallelize(&mut cosets, |o, start| {
@@ -389,6 +394,11 @@ pub(crate) fn build_pk<'params, C: CurveAffine, P: Params<'params, C>>(
             }
         });
     }
+
+    println!(
+        "perm_cosets computation: {} seconds",
+        t1.elapsed().as_secs()
+    );
 
     ProvingKey {
         permutations,
