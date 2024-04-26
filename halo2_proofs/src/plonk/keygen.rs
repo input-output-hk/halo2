@@ -19,7 +19,7 @@ use crate::{
     poly::{
         batch_invert_assigned,
         commitment::{Blind, Params},
-        EvaluationDomain,
+        EvaluationDomain, ExtendedLagrangeCoeff,
     },
 };
 
@@ -214,7 +214,7 @@ where
     ConcreteCircuit: Circuit<C::Scalar>,
     C::Scalar: FromUniformBytes<64>,
 {
-    keygen_vk_custom(params, circuit, true)
+    keygen_vk_custom(params, circuit, false)
 }
 
 /// Generate a `VerifyingKey` from an instance of `Circuit`.
@@ -371,6 +371,33 @@ where
         .permutation
         .build_pk(params, &vk.domain, &cs.permutation);
 
+    let [l0, l_last, l_active_row] = compute_lagrange_polys(params, &vk, &cs);
+
+    // Compute the optimized evaluation data structure
+    let ev = Evaluator::new(&vk.cs);
+
+    Ok(ProvingKey {
+        vk,
+        l0,
+        l_last,
+        l_active_row,
+        fixed_values: fixed,
+        fixed_polys,
+        fixed_cosets,
+        permutation: permutation_pk,
+        ev,
+    })
+}
+
+pub(crate) fn compute_lagrange_polys<'params, C, P>(
+    params: &P,
+    vk: &VerifyingKey<C>,
+    cs: &ConstraintSystem<C::Scalar>,
+) -> [Polynomial<C::Scalar, ExtendedLagrangeCoeff>; 3]
+where
+    C: CurveAffine,
+    P: Params<'params, C>,
+{
     // Compute l_0(X)
     // TODO: this can be done more efficiently
     let mut l0 = vk.domain.empty_lagrange();
@@ -403,19 +430,5 @@ where
             *value = one - (l_last[idx] + l_blind[idx]);
         }
     });
-
-    // Compute the optimized evaluation data structure
-    let ev = Evaluator::new(&vk.cs);
-
-    Ok(ProvingKey {
-        vk,
-        l0,
-        l_last,
-        l_active_row,
-        fixed_values: fixed,
-        fixed_polys,
-        fixed_cosets,
-        permutation: permutation_pk,
-        ev,
-    })
+    [l0, l_last, l_active_row]
 }
