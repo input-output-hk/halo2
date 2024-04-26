@@ -19,7 +19,7 @@ use crate::{
     poly::{
         batch_invert_assigned,
         commitment::{Blind, Params},
-        EvaluationDomain,
+        EvaluationDomain, ExtendedLagrangeCoeff,
     },
 };
 
@@ -206,7 +206,16 @@ where
     ConcreteCircuit: Circuit<C::Scalar>,
     C::Scalar: FromUniformBytes<64>,
 {
-    keygen_vk_custom(params, circuit, true)
+    // We disable "complex selectors" for now, because they are not properly
+    // serialized. At the moment, they are stored as boolean vectors containing
+    // their value on every single row. This makes the verification key size
+    // linear when they are enabled.
+    // Furthermore, having complex selectors makes the cs structure variable
+    // depending on the selector instantiation. This is undesirable.
+    // In the future, if we want to enjoy the benefits of complex selectors
+    // (about a 10-20% improvement in proof size and verifying key payload size)
+    // we need to improve their serialization.
+    keygen_vk_custom(params, circuit, false)
 }
 
 /// Generate a `VerifyingKey` from an instance of `Circuit`.
@@ -349,6 +358,31 @@ where
         .permutation
         .build_pk(params, &vk.domain, &cs.permutation);
 
+    let [l0, l_last, l_active_row] = compute_lagrange_polys(&vk, &cs);
+
+    // Compute the optimized evaluation data structure
+    let ev = Evaluator::new(&vk.cs);
+
+    Ok(ProvingKey {
+        vk,
+        l0,
+        l_last,
+        l_active_row,
+        fixed_values: fixed,
+        fixed_polys,
+        fixed_cosets,
+        permutation: permutation_pk,
+        ev,
+    })
+}
+
+pub(crate) fn compute_lagrange_polys<C>(
+    vk: &VerifyingKey<C>,
+    cs: &ConstraintSystem<C::Scalar>,
+) -> [Polynomial<C::Scalar, ExtendedLagrangeCoeff>; 3]
+where
+    C: CurveAffine,
+{
     // Compute l_0(X)
     // TODO: this can be done more efficiently
     let mut l0 = vk.domain.empty_lagrange();
@@ -368,7 +402,8 @@ where
     // Compute l_last(X) which evaluates to 1 on the first inactive row (just
     // before the blinding factors) and 0 otherwise over the domain
     let mut l_last = vk.domain.empty_lagrange();
-    l_last[params.n() as usize - cs.blinding_factors() - 1] = C::Scalar::ONE;
+    let n = l_last.len();
+    l_last[n - cs.blinding_factors() - 1] = C::Scalar::ONE;
     let l_last = vk.domain.lagrange_to_coeff(l_last);
     let l_last = vk.domain.coeff_to_extended(l_last);
 
@@ -381,19 +416,5 @@ where
             *value = one - (l_last[idx] + l_blind[idx]);
         }
     });
-
-    // Compute the optimized evaluation data structure
-    let ev = Evaluator::new(&vk.cs);
-
-    Ok(ProvingKey {
-        vk,
-        l0,
-        l_last,
-        l_active_row,
-        fixed_values: fixed,
-        fixed_polys,
-        fixed_cosets,
-        permutation: permutation_pk,
-        ev,
-    })
+    [l0, l_last, l_active_row]
 }

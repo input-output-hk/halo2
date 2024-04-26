@@ -1,5 +1,7 @@
 //! Implementation of permutation argument.
 
+use self::keygen::compute_polys_and_cosets;
+
 use super::circuit::{Any, Column};
 use crate::{
     arithmetic::CurveAffine,
@@ -7,7 +9,7 @@ use crate::{
         polynomial_slice_byte_length, read_polynomial_vec, write_polynomial_slice,
         SerdeCurveAffine, SerdePrimeField,
     },
-    poly::{Coeff, ExtendedLagrangeCoeff, LagrangeCoeff, Polynomial},
+    poly::{Coeff, EvaluationDomain, ExtendedLagrangeCoeff, LagrangeCoeff, Polynomial},
     SerdeFormat,
 };
 
@@ -138,10 +140,14 @@ where
     C::Scalar: SerdePrimeField,
 {
     /// Reads proving key for a single permutation argument from buffer using `Polynomial::read`.  
-    pub(super) fn read<R: io::Read>(reader: &mut R, format: SerdeFormat) -> io::Result<Self> {
+    pub(super) fn read<R: io::Read>(
+        reader: &mut R,
+        format: SerdeFormat,
+        domain: &EvaluationDomain<C::Scalar>,
+        p: &Argument,
+    ) -> io::Result<Self> {
         let permutations = read_polynomial_vec(reader, format)?;
-        let polys = read_polynomial_vec(reader, format)?;
-        let cosets = read_polynomial_vec(reader, format)?;
+        let (polys, cosets) = compute_polys_and_cosets::<C>(domain, p, &permutations);
         Ok(ProvingKey {
             permutations,
             polys,
@@ -156,8 +162,6 @@ where
         format: SerdeFormat,
     ) -> io::Result<()> {
         write_polynomial_slice(&self.permutations, writer, format)?;
-        write_polynomial_slice(&self.polys, writer, format)?;
-        write_polynomial_slice(&self.cosets, writer, format)?;
         Ok(())
     }
 }
@@ -166,7 +170,5 @@ impl<C: CurveAffine> ProvingKey<C> {
     /// Gets the total number of bytes in the serialization of `self`
     pub(super) fn bytes_length(&self) -> usize {
         polynomial_slice_byte_length(&self.permutations)
-            + polynomial_slice_byte_length(&self.polys)
-            + polynomial_slice_byte_length(&self.cosets)
     }
 }

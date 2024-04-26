@@ -7,7 +7,7 @@ use crate::{
     plonk::{Any, Column, Error},
     poly::{
         commitment::{Blind, Params},
-        EvaluationDomain,
+        Coeff, EvaluationDomain, ExtendedLagrangeCoeff, LagrangeCoeff, Polynomial,
     },
 };
 
@@ -368,27 +368,7 @@ pub(crate) fn build_pk<'params, C: CurveAffine, P: Params<'params, C>>(
         });
     }
 
-    let mut polys = vec![domain.empty_coeff(); p.columns.len()];
-    {
-        parallelize(&mut polys, |o, start| {
-            for (x, poly) in o.iter_mut().enumerate() {
-                let i = start + x;
-                let permutation_poly = permutations[i].clone();
-                *poly = domain.lagrange_to_coeff(permutation_poly);
-            }
-        });
-    }
-
-    let mut cosets = vec![domain.empty_extended(); p.columns.len()];
-    {
-        parallelize(&mut cosets, |o, start| {
-            for (x, coset) in o.iter_mut().enumerate() {
-                let i = start + x;
-                let poly = polys[i].clone();
-                *coset = domain.coeff_to_extended(poly);
-            }
-        });
-    }
+    let (polys, cosets) = compute_polys_and_cosets::<C>(domain, p, &permutations);
 
     ProvingKey {
         permutations,
@@ -457,4 +437,37 @@ pub(crate) fn build_vk<'params, C: CurveAffine, P: Params<'params, C>>(
     }
 
     VerifyingKey { commitments }
+}
+
+#[allow(clippy::type_complexity)]
+pub(crate) fn compute_polys_and_cosets<C: CurveAffine>(
+    domain: &EvaluationDomain<C::Scalar>,
+    p: &Argument,
+    permutations: &[Polynomial<C::Scalar, LagrangeCoeff>],
+) -> (
+    Vec<Polynomial<C::Scalar, Coeff>>,
+    Vec<Polynomial<C::Scalar, ExtendedLagrangeCoeff>>,
+) {
+    let mut polys = vec![domain.empty_coeff(); p.columns.len()];
+    {
+        parallelize(&mut polys, |o, start| {
+            for (x, poly) in o.iter_mut().enumerate() {
+                let i = start + x;
+                let permutation_poly = permutations[i].clone();
+                *poly = domain.lagrange_to_coeff(permutation_poly);
+            }
+        });
+    }
+
+    let mut cosets = vec![domain.empty_extended(); p.columns.len()];
+    {
+        parallelize(&mut cosets, |o, start| {
+            for (x, coset) in o.iter_mut().enumerate() {
+                let i = start + x;
+                let poly = polys[i].clone();
+                *coset = domain.coeff_to_extended(poly);
+            }
+        });
+    }
+    (polys, cosets)
 }
