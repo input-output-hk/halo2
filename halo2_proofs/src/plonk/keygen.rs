@@ -206,7 +206,16 @@ where
     ConcreteCircuit: Circuit<C::Scalar>,
     C::Scalar: FromUniformBytes<64>,
 {
-    keygen_vk_custom(params, circuit, true)
+    // We disable "complex selectors" for now, because they are not properly
+    // serialized. At the moment, they are stored as boolean vectors containing
+    // their value on every single row. This makes the verification key size
+    // linear when they are enabled.
+    // Furthermore, having complex selectors makes the cs structure variable
+    // depending on the selector instantiation. This is undesirable.
+    // In the future, if we want to enjoy the benefits of complex selectors
+    // (about a 10-20% improvement in proof size and verifying key payload size)
+    // we need to improve their serialization.
+    keygen_vk_custom(params, circuit, false)
 }
 
 /// Generate a `VerifyingKey` from an instance of `Circuit`.
