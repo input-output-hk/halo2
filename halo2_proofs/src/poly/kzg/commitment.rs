@@ -476,8 +476,12 @@ where
 
     fn downsize(&mut self, k: u32) {
         assert!(k <= self.k);
+        let n = 1 << k;
+        if n < self.trimed_size {
+            *self = self.clone().trim(n as usize);
+        }
         self.k = k;
-        self.n = 1 << k;
+        self.n = n as u64;
     }
 
     fn empty_msm(&'params self) -> MSMKZG<E> {
