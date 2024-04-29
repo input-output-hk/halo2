@@ -474,9 +474,10 @@ where
         self.n
     }
 
-    fn downsize(&mut self, _k: u32) {
-        // Verifier parameters cannot be downsized since they do not contain the original powers of g.
-        panic!("Verifier parameters cannot be downsized. You may want to use `trim` instead.")
+    fn downsize(&mut self, k: u32) {
+        assert!(k <= self.k);
+        self.k = k;
+        self.n = 1 << k;
     }
 
     fn empty_msm(&'params self) -> MSMKZG<E> {
