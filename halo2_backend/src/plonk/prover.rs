@@ -325,8 +325,6 @@ impl<
         let params = self.params;
         let meta = &self.pk.vk.cs;
 
-        let mut rng = &mut self.rng;
-
         let advices = &mut self.advices;
         let challenges = &mut self.challenges;
 
@@ -406,7 +404,7 @@ impl<
             for (column_index, advice_values) in column_indices.iter().zip(&mut advice_values) {
                 if !unblinded_advice.contains(column_index) {
                     for cell in &mut advice_values[unusable_rows_start..] {
-                        *cell = Scheme::Scalar::random(&mut rng);
+                        *cell = Scheme::Scalar::random(&mut self.rng);
                     }
                 } else {
                     #[cfg(feature = "sanity-checks")]
@@ -423,7 +421,7 @@ impl<
                     if unblinded_advice.contains(i) {
                         Blind::default()
                     } else {
-                        Blind(Scheme::Scalar::random(&mut rng))
+                        Blind(Scheme::Scalar::random(&mut self.rng))
                     }
                 })
                 .collect();

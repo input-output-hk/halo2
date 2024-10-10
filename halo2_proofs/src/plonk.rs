@@ -35,12 +35,12 @@ use std::io;
 ///
 /// Reads a curve element from the buffer and parses it according to the `format`:
 /// - `Processed`: Reads a compressed curve element and decompresses it.
-/// Reads a field element in standard form, with endianness specified by the
-/// `PrimeField` implementation, and checks that the element is less than the modulus.
+///   Reads a field element in standard form, with endianness specified by the
+///   `PrimeField` implementation, and checks that the element is less than the modulus.
 /// - `RawBytes`: Reads an uncompressed curve element with coordinates in Montgomery form.
-/// Checks that field elements are less than modulus, and then checks that the point is on the curve.
+///   Checks that field elements are less than modulus, and then checks that the point is on the curve.
 /// - `RawBytesUnchecked`: Reads an uncompressed curve element with coordinates in Montgomery form;
-/// does not perform any checks
+///   does not perform any checks
 pub fn vk_read<C: SerdeCurveAffine, R: io::Read, ConcreteCircuit: Circuit<C::Scalar>>(
     reader: &mut R,
     format: SerdeFormat,
@@ -63,12 +63,12 @@ where
 ///
 /// Reads a curve element from the buffer and parses it according to the `format`:
 /// - `Processed`: Reads a compressed curve element and decompresses it.
-/// Reads a field element in standard form, with endianness specified by the
-/// `PrimeField` implementation, and checks that the element is less than the modulus.
+///   Reads a field element in standard form, with endianness specified by the
+///   `PrimeField` implementation, and checks that the element is less than the modulus.
 /// - `RawBytes`: Reads an uncompressed curve element with coordinates in Montgomery form.
-/// Checks that field elements are less than modulus, and then checks that the point is on the curve.
+///   Checks that field elements are less than modulus, and then checks that the point is on the curve.
 /// - `RawBytesUnchecked`: Reads an uncompressed curve element with coordinates in Montgomery form;
-/// does not perform any checks
+///   does not perform any checks
 pub fn pk_read<C: SerdeCurveAffine, R: io::Read, ConcreteCircuit: Circuit<C::Scalar>>(
     reader: &mut R,
     format: SerdeFormat,
