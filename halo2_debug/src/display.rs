@@ -10,7 +10,7 @@ use std::fmt;
 /// - If the value is a power of two, format it as `2^k`
 /// - If the value is smaller than 2^16, format it in decimal
 /// - If the value is bigger than congruent -2^16, format it in decimal as the negative congruent
-/// (between -2^16 and 0).
+///   (between -2^16 and 0).
 /// - Else format it in hex without leading zeros.
 pub struct FDisp<'a, F: PrimeField>(pub &'a F);
 

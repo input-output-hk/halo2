@@ -59,6 +59,7 @@ pub(in crate::plonk) struct Evaluated<C: CurveAffine> {
 ///   obtaining A' and S', and
 /// - constructs  [`Permuted<C>`] struct using permuted_input_value = A', and
 ///   permuted_table_expression = S'.
+///
 /// The [`Permuted<C>`] struct is used to update the Lookup, and is then returned.
 #[allow(clippy::too_many_arguments)]
 pub(in crate::plonk) fn lookup_commit_permuted<
@@ -404,6 +405,7 @@ type ExpressionPair<F> = (Polynomial<F, LagrangeCoeff>, Polynomial<F, LagrangeCo
 /// - like values in A' are vertically adjacent to each other; and
 /// - the first row in a sequence of like values in A' is the row
 ///   that has the corresponding value in S'.
+///
 /// This method returns (A', S') if no errors are encountered.
 fn permute_expression_pair<C: CurveAffine, P: Params<C>, R: RngCore>(
     pk: &ProvingKey<C>,

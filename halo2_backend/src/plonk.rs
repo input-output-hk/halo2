@@ -65,11 +65,11 @@ where
     ///
     /// Writes a curve element according to `format`:
     /// - `Processed`: Writes a compressed curve element with coordinates in standard form.
-    /// Writes a field element in standard form, with endianness specified by the
-    /// `PrimeField` implementation.
+    ///   Writes a field element in standard form, with endianness specified by the
+    ///   `PrimeField` implementation.
     /// - Otherwise: Writes an uncompressed curve element with coordinates in Montgomery form
-    /// Writes a field element into raw bytes in its internal Montgomery representation,
-    /// WITHOUT performing the expensive Montgomery reduction.
+    ///   Writes a field element into raw bytes in its internal Montgomery representation,
+    ///   WITHOUT performing the expensive Montgomery reduction.
     pub fn write<W: io::Write>(&self, writer: &mut W, format: SerdeFormat) -> io::Result<()> {
         // Version byte that will be checked on read.
         writer.write_all(&[VERSION])?;
@@ -90,12 +90,12 @@ where
     ///
     /// Reads a curve element from the buffer and parses it according to the `format`:
     /// - `Processed`: Reads a compressed curve element and decompresses it.
-    /// Reads a field element in standard form, with endianness specified by the
-    /// `PrimeField` implementation, and checks that the element is less than the modulus.
+    ///   Reads a field element in standard form, with endianness specified by the
+    ///   `PrimeField` implementation, and checks that the element is less than the modulus.
     /// - `RawBytes`: Reads an uncompressed curve element with coordinates in Montgomery form.
-    /// Checks that field elements are less than modulus, and then checks that the point is on the curve.
+    ///   Checks that field elements are less than modulus, and then checks that the point is on the curve.
     /// - `RawBytesUnchecked`: Reads an uncompressed curve element with coordinates in Montgomery form;
-    /// does not perform any checks
+    ///   does not perform any checks
     pub fn read<R: io::Read>(
         reader: &mut R,
         format: SerdeFormat,
@@ -302,12 +302,12 @@ where
     ///
     /// Writes a curve element according to `format`:
     /// - `Processed`: Writes a compressed curve element with coordinates in standard form.
-    /// Writes a field element in standard form, with endianness specified by the
-    /// `PrimeField` implementation.
+    ///   Writes a field element in standard form, with endianness specified by the
+    ///   `PrimeField` implementation.
     /// - Otherwise: Writes an uncompressed curve element with coordinates in Montgomery form
-    /// Writes a field element into raw bytes in its internal Montgomery representation,
-    /// WITHOUT performing the expensive Montgomery reduction.
-    /// Does so by first writing the verifying key and then serializing the rest of the data (in the form of field polynomials)
+    ///   Writes a field element into raw bytes in its internal Montgomery representation,
+    ///   WITHOUT performing the expensive Montgomery reduction.
+    ///   Does so by first writing the verifying key and then serializing the rest of the data (in the form of field polynomials)
     pub fn write<W: io::Write>(&self, writer: &mut W, format: SerdeFormat) -> io::Result<()> {
         self.vk.write(writer, format)?;
         self.l0.write(writer, format)?;
@@ -325,12 +325,12 @@ where
     ///
     /// Reads a curve element from the buffer and parses it according to the `format`:
     /// - `Processed`: Reads a compressed curve element and decompresses it.
-    /// Reads a field element in standard form, with endianness specified by the
-    /// `PrimeField` implementation, and checks that the element is less than the modulus.
+    ///   Reads a field element in standard form, with endianness specified by the
+    ///   `PrimeField` implementation, and checks that the element is less than the modulus.
     /// - `RawBytes`: Reads an uncompressed curve element with coordinates in Montgomery form.
-    /// Checks that field elements are less than modulus, and then checks that the point is on the curve.
+    ///   Checks that field elements are less than modulus, and then checks that the point is on the curve.
     /// - `RawBytesUnchecked`: Reads an uncompressed curve element with coordinates in Montgomery form;
-    /// does not perform any checks
+    ///   does not perform any checks
     pub fn read<R: io::Read>(
         reader: &mut R,
         format: SerdeFormat,
