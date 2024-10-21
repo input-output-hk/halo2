@@ -24,7 +24,7 @@ where
     ConcreteCircuit: Circuit<C::Scalar>,
     C::Scalar: FromUniformBytes<64>,
 {
-    keygen_vk_custom(params, circuit, true)
+    keygen_vk_custom(params, circuit, false)
 }
 
 /// Generate a `VerifyingKey` from an instance of `Circuit`.
@@ -66,7 +66,7 @@ where
     P: Params<C>,
     ConcreteCircuit: Circuit<C::Scalar>,
 {
-    keygen_pk_custom(params, vk, circuit, true)
+    keygen_pk_custom(params, vk, circuit, false)
 }
 
 /// Generate a `ProvingKey` from an instance of `Circuit`.
