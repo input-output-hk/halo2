@@ -833,15 +833,13 @@ impl<F: FromUniformBytes<64> + Ord> MockProver<F> {
                                             _ => {
                                                 // Check that it was assigned!
                                                 if r.cells.contains_key(&(cell.column, cell_row))
-                                                    || gate.polynomials().par_iter().all(
-                                                        |expr| {
-                                                            self.cell_is_irrelevant(
-                                                                cell,
-                                                                expr,
-                                                                gate_row as usize,
-                                                            )
-                                                        },
-                                                    )
+                                                    || gate.polynomials().par_iter().all(|expr| {
+                                                        self.cell_is_irrelevant(
+                                                            cell,
+                                                            expr,
+                                                            gate_row as usize,
+                                                        )
+                                                    })
                                                 {
                                                     None
                                                 } else {
@@ -1225,11 +1223,9 @@ impl<F: FromUniformBytes<64> + Ord> MockProver<F> {
         match expr {
             Expression::Constant(_) | Expression::Selector(_) => true,
             Expression::Fixed(query) => !eq_query(query.column_index, query.rotation(), Any::Fixed),
-            Expression::Advice(query) => !eq_query(
-                query.column_index,
-                query.rotation(),
-                Any::Advice,
-            ),
+            Expression::Advice(query) => {
+                !eq_query(query.column_index, query.rotation(), Any::Advice)
+            }
             Expression::Instance(query) => {
                 !eq_query(query.column_index, query.rotation(), Any::Instance)
             }
