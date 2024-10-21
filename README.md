@@ -1,4 +1,4 @@
-# halo2 [![codecov](https://codecov.io/github/privacy-scaling-explorations/halo2/graph/badge.svg?token=6WX7KBHFIP)](https://codecov.io/github/privacy-scaling-explorations/halo2)
+# halo2
 
 ## [Documentation](https://privacy-scaling-explorations.github.io/halo2/halo2_proofs)
 
