@@ -44,15 +44,17 @@ use std::io;
 pub fn vk_read<C: SerdeCurveAffine, R: io::Read, ConcreteCircuit: Circuit<C::Scalar>>(
     reader: &mut R,
     format: SerdeFormat,
-    k: u32,
-    circuit: &ConcreteCircuit,
-    compress_selectors: bool,
+    #[cfg(feature = "circuit-params")] params: ConcreteCircuit::Params,
 ) -> io::Result<VerifyingKey<C>>
 where
     C::Scalar: SerdePrimeField + FromUniformBytes<64>,
 {
-    let (_, _, cs) = compile_circuit(k, circuit, compress_selectors)
-        .map_err(|e| io::Error::new(io::ErrorKind::Other, e.to_string()))?;
+    let mut cs = ConstraintSystem::default();
+    #[cfg(feature = "circuit-params")]
+    ConcreteCircuit::configure_with_params(&mut cs, params);
+    #[cfg(not(feature = "circuit-params"))]
+    ConcreteCircuit::configure(&mut cs);
+
     let cs_mid: ConstraintSystemMid<_> = cs.into();
     VerifyingKey::read(reader, format, cs_mid.into())
 }
