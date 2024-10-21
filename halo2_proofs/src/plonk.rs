@@ -55,6 +55,10 @@ where
     #[cfg(not(feature = "circuit-params"))]
     ConcreteCircuit::configure(&mut cs);
 
+    // we still need to replace selectors with fixed Expressions in `cs`
+    let fake_selectors = vec![vec![]; cs.num_selectors()];
+    let (cs, _) = cs.directly_convert_selectors_to_fixed(fake_selectors);
+
     let cs_mid: ConstraintSystemMid<_> = cs.into();
     VerifyingKey::read(reader, format, cs_mid.into())
 }
