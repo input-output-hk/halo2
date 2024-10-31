@@ -539,7 +539,7 @@ fn test_mycircuit_full_legacy() {
 
             proof
         },
-        "78aadfd46b5cc58b90d832ee47e4df57af3dfc28d1457c4ceeb5d0323a72f130",
+        "062603b4c2ab114921ffbfa95c3365b1d0d1037512062f96db1f1e4311dc0109",
     );
 }
 
