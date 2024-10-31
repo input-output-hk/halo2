@@ -31,7 +31,7 @@ use group::ff::FromUniformBytes;
 use halo2_backend::helpers::{SerdeCurveAffine, SerdeFormat, SerdePrimeField};
 use std::io;
 
-/// Reads a verification key from a buffer.
+/// Reads a verification key from a buffer without compressed selectors.
 ///
 /// Reads a curve element from the buffer and parses it according to the `format`:
 /// - `Processed`: Reads a compressed curve element and decompresses it.
@@ -58,6 +58,32 @@ where
     // we still need to replace selectors with fixed Expressions in `cs`
     let fake_selectors = vec![vec![]; cs.num_selectors()];
     let (cs, _) = cs.directly_convert_selectors_to_fixed(fake_selectors);
+
+    let cs_mid: ConstraintSystemMid<_> = cs.into();
+    VerifyingKey::read(reader, format, cs_mid.into())
+}
+
+/// Reads a verification key from a buffer with compressed selectors.
+///
+/// Reads a curve element from the buffer and parses it according to the `format`:
+/// - `Processed`: Reads a compressed curve element and decompresses it.
+///   Reads a field element in standard form, with endianness specified by the
+///   `PrimeField` implementation, and checks that the element is less than the modulus.
+/// - `RawBytes`: Reads an uncompressed curve element with coordinates in Montgomery form.
+///   Checks that field elements are less than modulus, and then checks that the point is on the curve.
+/// - `RawBytesUnchecked`: Reads an uncompressed curve element with coordinates in Montgomery form;
+///   does not perform any checks
+pub fn vk_read_compressed<C: SerdeCurveAffine, R: io::Read, ConcreteCircuit: Circuit<C::Scalar>>(
+    reader: &mut R,
+    format: SerdeFormat,
+    k: u32,
+    circuit: &ConcreteCircuit,
+) -> io::Result<VerifyingKey<C>>
+where
+    C::Scalar: SerdePrimeField + FromUniformBytes<64>,
+{
+    let (_, _, cs) = compile_circuit(k, circuit, true)
+        .map_err(|e| io::Error::new(io::ErrorKind::Other, e.to_string()))?;
 
     let cs_mid: ConstraintSystemMid<_> = cs.into();
     VerifyingKey::read(reader, format, cs_mid.into())
