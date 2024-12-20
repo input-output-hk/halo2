@@ -46,7 +46,7 @@ where
         ParamsKZG::unsafe_setup(k, OsRng)
     }
 
-    fn v_params_from_params(params: &Self::Parameters) -> Self::VerifierParameters {
+    fn get_verifier_params(params: &Self::Parameters) -> Self::VerifierParameters {
         params.verifier_params()
     }
 

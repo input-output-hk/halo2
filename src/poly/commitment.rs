@@ -22,15 +22,14 @@ pub trait PolynomialCommitmentScheme<F: PrimeField>: Clone + Debug {
     /// Generates the parameters of the polynomial commitment scheme
     fn gen_params(k: u32) -> Self::Parameters;
 
-    /// Generate the `VerifierParameters` from `Parameters`
-    fn v_params_from_params(params: &Self::Parameters) -> Self::VerifierParameters;
+    /// Extract the `VerifierParameters` from `Parameters`
+    fn get_verifier_params(params: &Self::Parameters) -> Self::VerifierParameters;
 
     /// Commit to a polynomial in coefficient form
     fn commit(params: &Self::Parameters, polynomial: &Polynomial<F, Coeff>) -> Self::Commitment;
 
-    /// Commit to a polynomial using its evaluations over the $2^k$ size
-    /// evaluation domain. The commitment will be blinded by the blinding factor
-    /// `r`.
+    /// Commit to a polynomial expressed in Lagrange evaluations form (over the underlying domain
+    /// specified in params).
     fn commit_lagrange(
         params: &Self::Parameters,
         poly: &Polynomial<F, LagrangeCoeff>,
@@ -66,10 +65,11 @@ pub trait Guard<F: PrimeField, CS: PolynomialCommitmentScheme<F>>: Sized {
     /// Finalize a batch of verification guards
     fn batch_verify<'a, I, J>(guards: I, params: J) -> Result<(), Error>
     where
-        I: IntoIterator<Item = Self>,
-        J: IntoIterator<Item = &'a CS::VerifierParameters>,
+        I: ExactSizeIterator<Item = Self>,
+        J: ExactSizeIterator<Item = &'a CS::VerifierParameters>,
         CS::VerifierParameters: 'a,
     {
+        assert_eq!(guards.len(), params.len());
         guards
             .into_iter()
             .zip(params)
