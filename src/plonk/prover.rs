@@ -32,7 +32,7 @@ use halo2curves::serde::SerdeObject;
 /// generated previously for the same circuit. The provided `instances`
 /// are zero-padded internally.
 pub fn create_proof<
-    F: WithSmallOrderMulGroup<3>,
+    F,
     CS: PolynomialCommitmentScheme<F>,
     T: Transcript,
     ConcreteCircuit: Circuit<F>,
@@ -46,7 +46,12 @@ pub fn create_proof<
 ) -> Result<(), Error>
 where
     CS::Commitment: Hashable<T::Hash> + SerdeObject,
-    F: Sampleable<T::Hash> + Hashable<T::Hash> + SerdeObject + Ord + FromUniformBytes<64>,
+    F: WithSmallOrderMulGroup<3>
+        + Sampleable<T::Hash>
+        + Hashable<T::Hash>
+        + SerdeObject
+        + Ord
+        + FromUniformBytes<64>,
 {
     if circuits.len() != instances.len() {
         return Err(Error::InvalidInstances);

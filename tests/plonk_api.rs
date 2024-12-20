@@ -3,7 +3,7 @@
 
 use assert_matches::assert_matches;
 use blake2b_simd::State;
-use ff::{FromUniformBytes, PrimeField, WithSmallOrderMulGroup};
+use ff::{FromUniformBytes, WithSmallOrderMulGroup};
 use halo2_proofs::circuit::{Cell, Layouter, SimpleFloorPlanner, Value};
 use halo2_proofs::dev::MockProver;
 use halo2_proofs::plonk::{
@@ -24,10 +24,6 @@ use std::marker::PhantomData;
 #[test]
 fn plonk_api() {
     const K: u32 = 5;
-
-    /// This represents an advice column at a certain row in the ConstraintSystem
-    #[derive(Copy, Clone, Debug)]
-    pub struct Variable(Column<Advice>, usize);
 
     #[derive(Clone)]
     struct PlonkConfig {
@@ -420,8 +416,8 @@ fn plonk_api() {
             assert_matches!(
                 keygen_vk::<_, $scheme, _>(&much_too_small_params, &empty_circuit),
                 Err(Error::NotEnoughRowsAvailable {
-                    current_k,
-                }) if current_k == 1
+                    current_k: 1,
+                })
             );
 
             // Check that we get an error if we try to initialize the proving key with a value of
@@ -436,7 +432,7 @@ fn plonk_api() {
         }};
     }
 
-    fn keygen<F: PrimeField, Scheme: PolynomialCommitmentScheme<F>>(
+    fn keygen<F, Scheme: PolynomialCommitmentScheme<F>>(
         params: &Scheme::Parameters,
     ) -> ProvingKey<F, Scheme>
     where
@@ -455,7 +451,7 @@ fn plonk_api() {
     }
 
     fn create_proof<
-        F: PrimeField,
+        F,
         Scheme: PolynomialCommitmentScheme<F>,
         T: Transcript,
         R: RngCore + CryptoRng,
@@ -502,7 +498,7 @@ fn plonk_api() {
         transcript.finalize()
     }
 
-    fn verify_proof<F: PrimeField, Scheme: PolynomialCommitmentScheme<F>, T: Transcript>(
+    fn verify_proof<F, Scheme: PolynomialCommitmentScheme<F>, T: Transcript>(
         params_verifier: &Scheme::VerifierParameters,
         vk: &VerifyingKey<F, Scheme>,
         proof: &[u8],

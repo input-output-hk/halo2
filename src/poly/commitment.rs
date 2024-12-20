@@ -8,7 +8,7 @@ use std::fmt::Debug;
 /// Public interface for a Polynomial Commitment Scheme (PCS)
 pub trait PolynomialCommitmentScheme<F: PrimeField>: Clone + Debug {
     /// Parameters needed to generate a proof in the PCS
-    type Parameters;
+    type Parameters: Params;
 
     /// Parameters needed to verify a proof in the PCS
     type VerifierParameters;
@@ -72,15 +72,13 @@ pub trait Guard<F: PrimeField, CS: PolynomialCommitmentScheme<F>>: Sized {
     {
         guards
             .into_iter()
-            .zip(params.into_iter())
+            .zip(params)
             .try_for_each(|(guard, params)| guard.verify(params))
     }
 }
 
-/// Interface for prover/verifier params
-pub trait Params<F: PrimeField, CS: PolynomialCommitmentScheme<F>> {
-    /// This commits to a polynomial using its evaluations over the $2^k$ size
-    /// evaluation domain. The commitment will be blinded by the blinding factor
-    /// `r`.
-    fn commit_lagrange(&self, poly: &Polynomial<F, LagrangeCoeff>) -> CS::Commitment;
+/// Interface for PCS params
+pub trait Params {
+    /// Returns the max size of polynomials that these parameters can commit to
+    fn max_k(&self) -> u32;
 }

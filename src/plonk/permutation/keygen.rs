@@ -8,10 +8,13 @@ use crate::{
 };
 
 #[cfg(feature = "thread-safe-region")]
-use crate::utils::multicore::{IndexedParallelIterator, IntoParallelIterator, ParallelIterator};
+use {
+    ff::PrimeField,
+    rayon::iter::{IndexedParallelIterator, IntoParallelIterator, ParallelIterator},
+};
 
 #[cfg(not(feature = "thread-safe-region"))]
-use crate::utils::multicore::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator};
+use rayon::iter::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator};
 
 use crate::poly::commitment::PolynomialCommitmentScheme;
 use rayon::iter::IntoParallelRefMutIterator;
@@ -239,8 +242,6 @@ impl Assembly {
     /// Builds the ordered mapping of the cycles.
     /// This will only get executed once.
     pub fn build_ordered_mapping(&mut self) {
-        use crate::multicore::IntoParallelRefMutIterator;
-
         // will only get called once
         if self.ordered_cycles.is_empty() && !self.cycles.is_empty() {
             self.ordered_cycles = self
@@ -281,9 +282,12 @@ impl Assembly {
         }
     }
 
-    pub(crate) fn build_vk<F: PrimeField, CS: PolynomialCommitmentScheme<F>>(
+    pub(crate) fn build_vk<
+        F: PrimeField + WithSmallOrderMulGroup<3>,
+        CS: PolynomialCommitmentScheme<F>,
+    >(
         &mut self,
-        params: &CS::VerifierParameters,
+        params: &CS::Parameters,
         domain: &EvaluationDomain<F>,
         p: &Argument,
     ) -> VerifyingKey<F, CS> {
@@ -291,14 +295,13 @@ impl Assembly {
         build_vk(params, domain, p, |i, j| self.mapping_at_idx(i, j))
     }
 
-    pub(crate) fn build_pk<F: PrimeField, CS: PolynomialCommitmentScheme<F>>(
+    pub(crate) fn build_pk<F: PrimeField + WithSmallOrderMulGroup<3>>(
         &mut self,
-        params: &CS::Parameters,
         domain: &EvaluationDomain<F>,
         p: &Argument,
     ) -> ProvingKey<F> {
         self.build_ordered_mapping();
-        build_pk(params, domain, p, |i, j| self.mapping_at_idx(i, j))
+        build_pk(domain, p, |i, j| self.mapping_at_idx(i, j))
     }
 
     /// Returns columns that participate in the permutation argument.

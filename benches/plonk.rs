@@ -19,10 +19,6 @@ use halo2_proofs::utils::rational::Rational;
 use halo2curves::bn256::Bn256;
 
 fn criterion_benchmark(c: &mut Criterion) {
-    /// This represents an advice column at a certain row in the ConstraintSystem
-    #[derive(Copy, Clone, Debug)]
-    pub struct Variable(Column<Advice>, usize);
-
     #[derive(Clone)]
     struct PlonkConfig {
         a: Column<Advice>,

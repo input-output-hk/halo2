@@ -12,8 +12,9 @@ use crate::{
     plonk::Error,
     poly::{Coeff, EvaluationDomain, ExtendedLagrangeCoeff, Polynomial, ProverQuery},
     utils::arithmetic::{eval_polynomial, parallelize},
-    utils::multicore::current_num_threads,
 };
+
+use rayon::current_num_threads;
 
 pub(in crate::plonk) struct Committed<F: PrimeField> {
     random_poly: Polynomial<F, Coeff>,

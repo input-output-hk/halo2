@@ -43,6 +43,7 @@ impl<F: WithSmallOrderMulGroup<3> + Ord> Argument<F> {
     ///   obtaining A' and S', and
     /// - constructs Permuted<C> struct using permuted_input_value = A', and
     ///   permuted_table_expression = S'.
+    ///
     /// The Permuted<C> struct is used to update the Lookup, and is then returned.
     #[allow(clippy::too_many_arguments)]
     pub(in crate::plonk) fn commit_permuted<
@@ -230,7 +231,7 @@ impl<F: WithSmallOrderMulGroup<3>> Permuted<F> {
         // It can be used for debugging purposes.
         {
             // While in Lagrange basis, check that product is correctly constructed
-            let u = (params.n() as usize) - (blinding_factors + 1);
+            let u = (pk.vk.n() as usize) - (blinding_factors + 1);
 
             // l_0(X) * (1 - z(X)) = 0
             assert_eq!(z[0], F::ONE);
@@ -243,15 +244,15 @@ impl<F: WithSmallOrderMulGroup<3>> Permuted<F> {
 
                 let permuted_table_value = &self.permuted_table_expression[i];
 
-                left *= &(*beta + permuted_input_value);
-                left *= &(*gamma + permuted_table_value);
+                left *= &(beta + permuted_input_value);
+                left *= &(gamma + permuted_table_value);
 
                 let mut right = z[i];
                 let mut input_term = self.compressed_input_expression[i];
                 let mut table_term = self.compressed_table_expression[i];
 
-                input_term += &(*beta);
-                table_term += &(*gamma);
+                input_term += &(beta);
+                table_term += &(gamma);
                 right *= &(input_term * &table_term);
 
                 assert_eq!(left, right);
@@ -357,12 +358,9 @@ type ExpressionPair<F> = (Polynomial<F, LagrangeCoeff>, Polynomial<F, LagrangeCo
 /// - like values in A' are vertically adjacent to each other; and
 /// - the first row in a sequence of like values in A' is the row
 ///   that has the corresponding value in S'.
+///
 /// This method returns (A', S') if no errors are encountered.
-fn permute_expression_pair<
-    F: WithSmallOrderMulGroup<3> + Ord,
-    CS: PolynomialCommitmentScheme<F>,
-    R: RngCore,
->(
+fn permute_expression_pair<F, CS: PolynomialCommitmentScheme<F>, R: RngCore>(
     pk: &ProvingKey<F, CS>,
     domain: &EvaluationDomain<F>,
     mut rng: R,
@@ -370,7 +368,7 @@ fn permute_expression_pair<
     table_expression: &Polynomial<F, LagrangeCoeff>,
 ) -> Result<ExpressionPair<F>, Error>
 where
-    F: FromUniformBytes<64> + SerdeObject,
+    F: WithSmallOrderMulGroup<3> + Ord + FromUniformBytes<64> + SerdeObject,
 {
     let blinding_factors = pk.vk.cs.blinding_factors();
     let usable_rows = pk.vk.n() as usize - (blinding_factors + 1);

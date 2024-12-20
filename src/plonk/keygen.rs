@@ -16,7 +16,7 @@ use super::{
 };
 use crate::circuit::Value;
 use crate::poly::batch_invert_rational;
-use crate::poly::commitment::PolynomialCommitmentScheme;
+use crate::poly::commitment::{Params, PolynomialCommitmentScheme};
 use crate::utils::rational::Rational;
 use crate::{poly::EvaluationDomain, utils::arithmetic::parallelize};
 
@@ -253,8 +253,15 @@ where
     CS: PolynomialCommitmentScheme<F>,
     ConcreteCircuit: Circuit<F>,
 {
+    let k = k_from_circuit(circuit);
+    if params.max_k() < k {
+        return Err(Error::NotEnoughRowsAvailable {
+            current_k: params.max_k(),
+        });
+    }
+
     let (domain, cs, config) = create_domain::<F, ConcreteCircuit>(
-        k_from_circuit(circuit),
+        k,
         #[cfg(feature = "circuit-params")]
         circuit.params(),
     );

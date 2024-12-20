@@ -197,7 +197,7 @@ pub(crate) fn batch_invert_rational<F: Field>(
 impl<F: Field> Polynomial<Rational<F>, LagrangeCoeff> {
     pub(crate) fn invert(
         &self,
-        inv_denoms: impl Iterator<Item = F> + ExactSizeIterator,
+        inv_denoms: impl ExactSizeIterator<Item = F>,
     ) -> Polynomial<F, LagrangeCoeff> {
         assert_eq!(inv_denoms.len(), self.values.len());
         Polynomial {

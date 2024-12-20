@@ -9,17 +9,17 @@ use crate::transcript::{read_n, Hashable, Sampleable, Transcript};
 use crate::utils::arithmetic::compute_inner_product;
 
 /// Prepares a plonk proof into a PCS instance that can be finalized or batched.
-pub fn prepare<
-    F: WithSmallOrderMulGroup<3> + Hashable<T::Hash> + Sampleable<T::Hash> + SerdeObject,
-    CS: PolynomialCommitmentScheme<F>,
-    T: Transcript,
->(
+pub fn prepare<F, CS: PolynomialCommitmentScheme<F>, T: Transcript>(
     vk: &VerifyingKey<F, CS>,
     instances: &[&[&[F]]],
     transcript: &mut T,
 ) -> Result<CS::VerificationGuard, Error>
 where
-    F: FromUniformBytes<64> + WithSmallOrderMulGroup<3>,
+    F: WithSmallOrderMulGroup<3>
+        + Hashable<T::Hash>
+        + Sampleable<T::Hash>
+        + SerdeObject
+        + FromUniformBytes<64>,
     CS::Commitment: Hashable<T::Hash> + SerdeObject,
 {
     // Check that instances matches the expected number of instance columns

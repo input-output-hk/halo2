@@ -7,6 +7,7 @@ use halo2curves::pairing::Engine;
 use rand_core::RngCore;
 use std::fmt::Debug;
 
+use crate::poly::commitment::Params;
 use crate::utils::helpers::ProcessedSerdeObject;
 use halo2curves::CurveAffine;
 use std::io;
@@ -18,6 +19,14 @@ pub struct ParamsKZG<E: Engine> {
     pub(crate) g_lagrange: Vec<E::G1Affine>,
     pub(crate) g2: E::G2Affine,
     pub(crate) s_g2: E::G2Affine,
+}
+
+impl<E: Engine> Params for ParamsKZG<E> {
+    fn max_k(&self) -> u32 {
+        assert_eq!(self.g.len(), self.g_lagrange.len());
+
+        self.g.len().ilog2()
+    }
 }
 
 impl<E: Engine + Debug> ParamsKZG<E> {
