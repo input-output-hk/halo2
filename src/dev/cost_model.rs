@@ -23,50 +23,50 @@ use super::{CellValue, Region};
 
 /// Options to build a circuit specification to measure the cost model of.
 #[derive(Debug)]
-pub struct CostOptions {
+struct CostOptions {
     /// An advice column with the given rotations. May be repeated.
-    pub advice: Vec<Poly>,
+    advice: Vec<Poly>,
 
     /// An instance column with the given rotations. May be repeated.
-    pub instance: Vec<Poly>,
+    instance: Vec<Poly>,
 
     /// A fixed column with the given rotations. May be repeated.
-    pub fixed: Vec<Poly>,
+    fixed: Vec<Poly>,
 
     /// Maximum degree of the custom gates.
-    pub gate_degree: usize,
+    gate_degree: usize,
 
     /// Maximum degree of the constraint system.
-    pub max_degree: usize,
+    max_degree: usize,
 
     /// A lookup over N columns with max input degree I and max table degree T. May be repeated.
-    pub lookup: Vec<Lookup>,
+    lookup: Vec<Lookup>,
 
     /// A permutation over N columns. May be repeated.
-    pub permutation: Permutation,
+    permutation: Permutation,
 
     /// 2^K bound on the number of rows, accounting for ZK, PIs and Lookup tables.
-    pub min_k: usize,
+    min_k: usize,
 
     /// Rows count, not including table rows and not accounting for compression
     /// (where multiple regions can use the same rows).
-    pub rows_count: usize,
+    rows_count: usize,
 
     /// Table rows count, not accounting for compression (where multiple regions
     /// can use the same rows), but not much if any compression can happen with
     /// table rows anyway.
-    pub table_rows_count: usize,
+    table_rows_count: usize,
 
     /// Compressed rows count, accounting for compression (where multiple
     /// regions can use the same rows).
-    pub compressed_rows_count: usize,
+    compressed_rows_count: usize,
 }
 
 /// Structure holding polynomial related data for benchmarks
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
-pub struct Poly {
+struct Poly {
     /// Rotations for the given polynomial
-    pub rotations: Vec<isize>,
+    rotations: Vec<isize>,
 }
 
 impl FromStr for Poly {
@@ -82,11 +82,11 @@ impl FromStr for Poly {
 
 /// Structure holding the Lookup related data for circuit benchmarks.
 #[derive(Debug, Clone)]
-pub struct Lookup;
+struct Lookup;
 
 impl Lookup {
     /// Returns the queries of the lookup argument
-    pub fn queries(&self) -> impl Iterator<Item = Poly> {
+    fn queries(&self) -> impl Iterator<Item = Poly> {
         // - product commitments at x and \omega x
         // - input commitments at x and x_inv
         // - table commitments at x
@@ -103,13 +103,13 @@ impl Lookup {
 
 /// Number of permutation enabled columns
 #[derive(Debug, Clone, Deserialize, Serialize)]
-pub struct Permutation {
+struct Permutation {
     columns: usize,
 }
 
 impl Permutation {
     /// Returns the queries of the Permutation argument
-    pub fn queries(&self) -> impl Iterator<Item = Poly> {
+    fn queries(&self) -> impl Iterator<Item = Poly> {
         // - product commitments at x and x_inv
         // - polynomial commitments at x
         let product = "0,-1".parse().unwrap();
@@ -121,7 +121,7 @@ impl Permutation {
     }
 
     /// Returns the number of columns of the Permutation argument
-    pub fn nr_columns(&self) -> usize {
+    fn nr_columns(&self) -> usize {
         self.columns
     }
 }
@@ -139,9 +139,12 @@ pub struct CircuitModel {
     pub max_deg: usize,
     /// Number of advice columns.
     pub advice_columns: usize,
-    /// Number of lookup arguments.
+    /// Number of fixed columns. This includes selectors, tables (for lookups), and permutation
+    /// commitments.
+    pub fixed_columns: usize,
+    /// Number of advice columns used in the lookup argument.
     pub lookups: usize,
-    /// Equality constraint enabled columns.
+    /// Equality constraint enabled columns (fixed columns are counted in `fixed_columns` value).
     pub permutations: usize,
     /// Number of distinct column queries across all gates.
     pub column_queries: usize,
@@ -154,7 +157,7 @@ pub struct CircuitModel {
 impl CostOptions {
     /// Convert [CostOptions] to [CircuitModel]. The proof sizè is computed depending on the base
     /// and scalar field size of the curve used, together with the [CommitmentScheme].
-    pub fn into_circuit_model<const COMM: usize, const SCALAR: usize>(&self) -> CircuitModel {
+    fn into_circuit_model<const COMM: usize, const SCALAR: usize>(&self) -> CircuitModel {
         let mut queries: Vec<_> = iter::empty()
             .chain(self.advice.iter())
             .chain(self.instance.iter())
@@ -174,24 +177,34 @@ impl CostOptions {
 
         // PLONK:
         // - COMM bytes (commitment) per advice column
-        // - 3 * COMM bytes (commitments) + 5 * SCALAR bytes (evals) per lookup column
-        // - COMM bytes (commitment) + 2 * SCALAR bytes (evals) per permutation argument
-        // - COMM bytes (eval) per column per permutation argument
+        // - 3 * COMM bytes per lookup
+        // - COMM bytes per ((self.permutation.columns - 1) / (self.max_degree - 2)) + 1
+        // - 3 * SCALAR bytes per ((self.permutation.columns - 1) / (self.max_degree - 2)) + 1
+        // - SCALAR bytes per advice per query
+        // - SCALAR bytes per fixed per query <- missing
+        // - SCALAR bytes per permutation column
+        // - 5 * SCALAR bytes per lookup argument
+        let nb_perm_chunks = ((self.permutation.columns - 1) / (self.max_degree - 2)) + 1;
         let plonk = comp_bytes(1, 0) * self.advice.len()
+            + self.advice.iter().map(|polys| comp_bytes(0, polys.rotations.len())).sum::<usize>()
+            + self.fixed.iter().map(|polys| comp_bytes(0, polys.rotations.len())).sum::<usize>()
             + comp_bytes(3, 5) * self.lookup.len()
-            + comp_bytes(1, 2 + self.permutation.columns);
+            + comp_bytes(1, 3) * nb_perm_chunks
+            + comp_bytes(0, 1) * self.permutation.columns;
 
         // Vanishing argument:
-        // - (max_deg - 1) * COMM bytes (commitments) + (max_deg - 1) * SCALAR bytes (h_evals)
-        //   for quotient polynomial
-        // - SCALAR bytes (eval) per column query
+        // - COMM bytes for random poly
+        // - (max_deg - 1) COMM bytes for the pieces
+        // - (max_deg - 1) * SCALAR bytes for pieces eval
+        // - SCALAR bytes for random piece eval
         let vanishing =
-            comp_bytes(self.max_degree - 1, self.max_degree - 1) + comp_bytes(0, column_queries);
+            comp_bytes(self.max_degree, self.max_degree);
 
         // Multiopening argument:
-        // - f_commitment (COMM bytes)
-        // - SCALAR bytes (evals) per set of points in multiopen argument
-        let multiopen = comp_bytes(1, point_sets);
+        // - COMM bytes for f_commitment
+        // - SCALAR bytes per set of points in multiopen argument
+        // - COMM bytes for proof
+        let multiopen = comp_bytes(2, point_sets);
 
         let mut nr_rotations = HashSet::new();
         for poly in self.advice.iter() {
@@ -204,11 +217,7 @@ impl CostOptions {
             nr_rotations.extend(poly.rotations.clone());
         }
 
-        // Polycommit GWC:
-        // - number_rotations * COMM bytes
-        let polycomm = comp_bytes(nr_rotations.len(), 0);
-
-        let size = plonk + vanishing + multiopen + polycomm;
+        let size = plonk + vanishing + multiopen;
 
         CircuitModel {
             k: self.min_k,
@@ -216,6 +225,8 @@ impl CostOptions {
             table_rows: self.table_rows_count,
             max_deg: self.max_degree,
             advice_columns: self.advice.len(),
+            // Note that we have one fixed commitment per column in the permutation argument
+            fixed_columns: self.fixed.len() + self.permutation.columns,
             lookups: self.lookup.len(),
             permutations: self.permutation.columns,
             column_queries,
@@ -242,7 +253,7 @@ pub fn from_circuit_to_circuit_model<
 
 /// Given a circuit, this function returns [CostOptions]. If no upper bound for `k` is
 /// provided, we iterate until a valid `k` is found (this might delay the computation).
-pub fn from_circuit_to_cost_model_options<F: Ord + Field + FromUniformBytes<64>, C: Circuit<F>>(
+fn from_circuit_to_cost_model_options<F: Ord + Field + FromUniformBytes<64>, C: Circuit<F>>(
     k_upper_bound: Option<u32>,
     circuit: &C,
     nb_instances: usize,
