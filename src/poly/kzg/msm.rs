@@ -1,5 +1,5 @@
 use std::fmt::Debug;
-
+use std::marker::PhantomData;
 use super::params::ParamsVerifierKZG;
 use crate::poly::commitment::{Guard, PolynomialCommitmentScheme};
 use crate::poly::kzg::KZGCommitmentScheme;
@@ -89,9 +89,10 @@ where
 
 /// Two channel MSM accumulator
 #[derive(Debug, Clone)]
-pub struct DualMSM<E: Engine> {
+pub struct DualMSM<E: Engine, CS: PolynomialCommitmentScheme<E::Fr>> {
     pub(crate) left: MSMKZG<E>,
     pub(crate) right: MSMKZG<E>,
+    _marker: PhantomData<CS>
 }
 
 /// A [DualMSM] split into left and right vectors of `(Scalar, Point)` tuples
@@ -100,7 +101,7 @@ pub type SplitDualMSM<'a, E> = (
     Vec<(&'a <E as Engine>::Fr, &'a <E as Engine>::G1)>,
 );
 
-impl<E: MultiMillerLoop + Debug> Default for DualMSM<E>
+impl<E: MultiMillerLoop + Debug, CS: PolynomialCommitmentScheme<E::Fr>> Default for DualMSM<E, CS>
 where
     E::G1Affine: CurveAffine<ScalarExt = E::Fr, CurveExt = E::G1>,
 {
@@ -109,7 +110,7 @@ where
     }
 }
 
-impl<E: MultiMillerLoop> Guard<E::Fr, KZGCommitmentScheme<E>> for DualMSM<E>
+impl<E: MultiMillerLoop> Guard<E::Fr, KZGCommitmentScheme<E>> for DualMSM<E, KZGCommitmentScheme<E>>
 where
     E::G1: Default + CurveExt<ScalarExt = E::Fr> + ProcessedSerdeObject,
     E::G1Affine: Default + CurveAffine<ScalarExt = E::Fr, CurveExt = E::G1>,
@@ -122,7 +123,7 @@ where
     }
 }
 
-impl<E: MultiMillerLoop + Debug> DualMSM<E>
+impl<E: MultiMillerLoop + Debug, CS: PolynomialCommitmentScheme<E::Fr>> DualMSM<E, CS>
 where
     E::G1Affine: CurveAffine<ScalarExt = E::Fr, CurveExt = E::G1>,
 {
@@ -131,6 +132,7 @@ where
         Self {
             left: MSMKZG::new(),
             right: MSMKZG::new(),
+            _marker: PhantomData,
         }
     }
 

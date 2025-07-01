@@ -16,8 +16,11 @@ use std::ops::{Add, Deref, DerefMut, Index, IndexMut, Mul, RangeFrom, RangeFull,
 mod domain;
 mod query;
 
-/// KZG commitment scheme
+/// KZG commitment scheme from Halo2 book `https://zcash.github.io/halo2/design/proving-system/multipoint-opening.html`
 pub mod kzg;
+
+/// KZG commitment scheme from GWC19 paper `https://eprint.iacr.org/2019/953.pdf`
+pub mod gwc_kzg;
 
 pub mod commitment;
 

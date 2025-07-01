@@ -55,7 +55,7 @@ where
     type Parameters = ParamsKZG<E>;
     type VerifierParameters = ParamsVerifierKZG<E>;
     type Commitment = E::G1;
-    type VerificationGuard = DualMSM<E>;
+    type VerificationGuard = DualMSM<E, KZGCommitmentScheme<E>>;
 
     fn gen_params(k: u32) -> Self::Parameters {
         ParamsKZG::unsafe_setup(k, OsRng)
@@ -189,7 +189,7 @@ where
         verifier_query: impl IntoIterator<Item = VerifierQuery<'com, E::Fr, KZGCommitmentScheme<E>>>
             + Clone,
         transcript: &mut T,
-    ) -> Result<DualMSM<E>, Error>
+    ) -> Result<DualMSM<E, KZGCommitmentScheme<E>>, Error>
     where
         E::Fr: Sampleable<T::Hash> + Ord + Hashable<T::Hash>,
         E::G1: Hashable<T::Hash> + CurveExt<ScalarExt = E::Fr>,
@@ -335,7 +335,7 @@ mod tests {
     use crate::utils::arithmetic::eval_polynomial;
     use blake2b_simd::State as Blake2bState;
     use ff::WithSmallOrderMulGroup;
-    use halo2curves::pairing::MultiMillerLoop;
+    use halo2curves::pairing::{Engine, MultiMillerLoop};
     use halo2curves::serde::SerdeObject;
     use halo2curves::{CurveAffine, CurveExt};
     use rand_core::OsRng;
@@ -378,7 +378,7 @@ mod tests {
         let cvy: E::Fr = transcript.read().unwrap();
 
         let valid_queries = std::iter::empty()
-            .chain(Some(VerifierQuery::new(x, &a, avx)))
+            .chain(Some(VerifierQuery::<<E as Engine>::Fr, KZGCommitmentScheme<E>>::new(x, &a, avx)))
             .chain(Some(VerifierQuery::new(x, &b, bvx)))
             .chain(Some(VerifierQuery::new(y, &c, cvy)));
 
