@@ -30,6 +30,10 @@ pub trait PolynomialCommitmentScheme<F: PrimeField>: Clone + Debug {
     /// Verification guard. Allows for batch verification
     type VerificationGuard: Guard<F, Self>;
 
+    /// this is used only for debug purpose
+    #[cfg(feature = "plutus_debug")]
+    fn display(c: &Self::Commitment) -> String;
+
     /// Generates the parameters of the polynomial commitment scheme
     fn gen_params(k: u32) -> Self::Parameters;
 

@@ -61,6 +61,8 @@ tabbycat = { version = "0.1", features = ["attributes"], optional = true }
 halo2_legacy_pdqsort = { version = "0.1.0", optional = true }
 num-bigint = "0.4.6"
 
+log = {version = "0.4.27", optional = true}
+
 [dev-dependencies]
 assert_matches = "1.5"
 criterion = "0.3"
@@ -99,6 +101,10 @@ truncated-challenges = []
 #
 # This feature is very powerful for proving statements on committed data.
 committed-instances = []
+
+# this is used to add code that displays debug information in format
+#that is easy to compar with plutus
+plutus_debug = ["dep:log"]
 
 [lib]
 bench = false

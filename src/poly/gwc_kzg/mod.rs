@@ -61,6 +61,11 @@ where
     type Commitment = E::G1;
     type VerificationGuard = DualMSM<E, GwcKZGCommitmentScheme<E>>;
 
+    #[cfg(feature = "plutus_debug")]
+    fn display(c: &<E as Engine>::G1) -> String {
+        format!("{:?}", c.to_affine())
+    }
+
     fn gen_params(k: u32) -> Self::Parameters {
         ParamsKZG::unsafe_setup(k, OsRng)
     }

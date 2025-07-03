@@ -14,6 +14,7 @@ pub struct Committed<F: PrimeField, CS: PolynomialCommitmentScheme<F>> {
     permutation_product_commitments: Vec<CS::Commitment>,
 }
 
+#[cfg_attr(feature = "plutus_debug", derive(Debug))]
 pub struct EvaluatedSet<F: PrimeField, CS: PolynomialCommitmentScheme<F>> {
     permutation_product_commitment: CS::Commitment,
     permutation_product_eval: F,
@@ -21,10 +22,12 @@ pub struct EvaluatedSet<F: PrimeField, CS: PolynomialCommitmentScheme<F>> {
     permutation_product_last_eval: Option<F>,
 }
 
+#[cfg_attr(feature = "plutus_debug", derive(Debug))]
 pub struct CommonEvaluated<F: PrimeField> {
     permutation_evals: Vec<F>,
 }
 
+#[cfg_attr(feature = "plutus_debug", derive(Debug))]
 pub struct Evaluated<F: PrimeField, CS: PolynomialCommitmentScheme<F>> {
     sets: Vec<EvaluatedSet<F, CS>>,
 }

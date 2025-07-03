@@ -1,7 +1,8 @@
 use std::iter;
 
 use ff::{PrimeField, WithSmallOrderMulGroup};
-
+#[cfg(feature = "plutus_debug")]
+use log::info;
 use crate::poly::commitment::PolynomialCommitmentScheme;
 use crate::transcript::{read_n, Hashable, Transcript};
 use crate::{
@@ -26,6 +27,7 @@ pub struct PartiallyEvaluated<F: PrimeField, CS: PolynomialCommitmentScheme<F>> 
     random_eval: F,
 }
 
+#[cfg_attr(feature = "plutus_debug", derive(Debug))]
 pub struct Evaluated<F: PrimeField, CS: PolynomialCommitmentScheme<F>> {
     h_commitment: CS::Commitment,
     random_poly_commitment: CS::Commitment,
@@ -95,12 +97,18 @@ impl<F: PrimeField, CS: PolynomialCommitmentScheme<F>> PartiallyEvaluated<F, CS>
         let expected_h_eval = expressions.fold(F::ZERO, |h_eval, v| h_eval * &y + &v);
         let expected_h_eval = expected_h_eval * ((xn - F::ONE).invert().unwrap());
 
-        let h_commitment = self
+        #[cfg(feature = "plutus_debug")]
+        info!("vanishing_s = {expected_h_eval:?}");
+
+        let h_commitment: <CS as PolynomialCommitmentScheme<F>>::Commitment = self
             .h_commitments
             .into_iter()
             .rev()
             .reduce(|acc, commitment| commitment + (acc * xn))
             .expect("H commitments should not be empty");
+
+        #[cfg(feature = "plutus_debug")]
+        info!("vanishing_g = {h_commitment:?}");
 
         Evaluated {
             h_commitment,

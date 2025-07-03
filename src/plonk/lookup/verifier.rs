@@ -10,16 +10,19 @@ use crate::{
 };
 use ff::{PrimeField, WithSmallOrderMulGroup};
 
+#[cfg_attr(feature = "plutus_debug", derive(Debug))]
 pub struct PermutationCommitments<F: PrimeField, CS: PolynomialCommitmentScheme<F>> {
     permuted_input_commitment: CS::Commitment,
     permuted_table_commitment: CS::Commitment,
 }
 
+#[cfg_attr(feature = "plutus_debug", derive(Debug))]
 pub struct Committed<F: PrimeField, CS: PolynomialCommitmentScheme<F>> {
     permuted: PermutationCommitments<F, CS>,
     product_commitment: CS::Commitment,
 }
 
+#[cfg_attr(feature = "plutus_debug", derive(Debug))]
 pub struct Evaluated<F: PrimeField, CS: PolynomialCommitmentScheme<F>> {
     committed: Committed<F, CS>,
     product_eval: F,

@@ -61,6 +61,11 @@ where
         ParamsKZG::unsafe_setup(k, OsRng)
     }
 
+    #[cfg(feature = "plutus_debug")]
+    fn display(c: &<E as Engine>::G1) -> String {
+        format!("{:?}", c.to_affine())
+    }
+
     fn get_verifier_params(params: &Self::Parameters) -> Self::VerifierParameters {
         params.verifier_params()
     }

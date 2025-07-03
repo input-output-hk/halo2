@@ -1,11 +1,12 @@
-use ff::{FromUniformBytes, WithSmallOrderMulGroup};
-use std::iter;
-
 use super::{vanishing, Error, VerifyingKey};
 use crate::poly::commitment::PolynomialCommitmentScheme;
 use crate::poly::VerifierQuery;
 use crate::transcript::{read_n, Hashable, Sampleable, Transcript};
 use crate::utils::arithmetic::compute_inner_product;
+use ff::{FromUniformBytes, WithSmallOrderMulGroup};
+#[cfg(feature = "plutus_debug")]
+use log::info;
+use std::iter;
 
 /// Prepares a plonk proof into a PCS instance that can be finalized or batched. It is
 /// responsibility of the verifier to check the validity of the instance columns.
@@ -192,20 +193,35 @@ where
             })
             .collect::<Result<Vec<_>, _>>()?
     };
+    #[cfg(feature = "plutus_debug")]
+    info!("instance evals {instance_evals:?}");
 
     let advice_evals = (0..num_proofs)
         .map(|_| -> Result<Vec<_>, _> { read_n(transcript, vk.cs.advice_queries.len()) })
         .collect::<Result<Vec<_>, _>>()?;
 
+    #[cfg(feature = "plutus_debug")]
+    info!("advice evals {advice_evals:?}");
+
     let fixed_evals = read_n(transcript, vk.cs.fixed_queries.len())?;
+
+    #[cfg(feature = "plutus_debug")]
+    info!("fixed evals {fixed_evals:?}");
+
     let vanishing = vanishing.evaluate_after_x(transcript)?;
 
     let permutations_common = vk.permutation.evaluate(transcript)?;
+
+    #[cfg(feature = "plutus_debug")]
+    info!("permutations common {permutations_common:?}");
 
     let permutations_evaluated = permutations_committed
         .into_iter()
         .map(|permutation| permutation.evaluate(transcript))
         .collect::<Result<Vec<_>, _>>()?;
+
+    #[cfg(feature = "plutus_debug")]
+    info!("permutations evaluated {permutations_evaluated:?}");
 
     let lookups_evaluated = lookups_committed
         .into_iter()
@@ -216,6 +232,9 @@ where
                 .collect::<Result<Vec<_>, _>>()
         })
         .collect::<Result<Vec<_>, _>>()?;
+
+    #[cfg(feature = "plutus_debug")]
+    info!("lookups evaluated {lookups_evaluated:?}");
 
     // This check ensures the circuit is satisfied so long as the polynomial
     // commitments open to the correct values.
@@ -354,6 +373,16 @@ where
         )
         .chain(permutations_common.queries(&vk.permutation, x))
         .chain(vanishing.queries(x));
+
+    #[cfg(feature = "plutus_debug")]
+    {
+        queries.clone().for_each(|query| {
+            info!("------query----");
+            info!("( commitment: ( {:?} ), point: {:?}, evaluation: {:?} )",
+                CS::display(&query.commitment), query.point, query.eval);
+            info!("---------------");
+        });
+    }
 
     // We are now convinced the circuit is satisfied so long as the
     // polynomial commitments open to the correct values.
